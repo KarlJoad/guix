@@ -20,6 +20,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 match)
   #:use-module (guix records)
+  #:use-module (guix packages)
   #:use-module (gnu services configuration)
   #:use-module (gnu home services)
   #:use-module (gnu home services utils)
@@ -55,6 +56,9 @@
          val)))
 
 (define-configuration home-msmtp-configuration
+  (package
+    (package msmtp)
+    "The MSMTP package to use.")
   ;; home-msmtp-configuration make-home-msmtp-configuration
   ;; home-msmtp-configuration?
   (account
@@ -100,12 +104,18 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "user " (msmtp-file-serialize-field config 'user) "\n"
        "passwordeval " (msmtp-file-serialize-field config 'pass-cmd)))))
 
+(define (add-msmtp-packages config)
+  (list (home-msmtp-configuration-package config)))
+
 (define home-msmtp-service-type
   (service-type (name 'home-msmtp)
                 (extensions
                  (list (service-extension
                         home-xdg-configuration-files-service-type
-                        add-msmtp-configuration)))
+                        add-msmtp-configuration)
+                       (service-extension
+                        home-profile-service-type
+                        add-msmtp-packages)))
                 (compose concatenate)
                 ;; (extend add-profile-extensions)
                 (default-value (home-msmtp-configuration))
