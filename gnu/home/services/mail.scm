@@ -47,6 +47,10 @@
 ;; use for fields marked as of type string.
 (define (serialize-string field-name val) val)
 (define (serialize-number field-name val) (number->string val))
+(define (serialize-boolean field-name val)
+  (if val
+      "on"
+      "off"))
 
 (define (serialize-password-cmd field-name val)
   #~(string-append
@@ -83,7 +87,10 @@
    "Port number for the SMTP server you are sending through.")
   (protocol
    (string "smtp")
-   "Name of protocol mail is being sent to server over."))
+   "Name of protocol mail is being sent to server over.")
+  (enable-tls?
+   (boolean #t)
+   "Should mail be sent to SMTP server over a TLS connection?"))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -111,7 +118,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "user " (msmtp-file-serialize-field config 'user) "\n"
        "passwordeval " (msmtp-file-serialize-field config 'pass-cmd) "\n"
        "port " (msmtp-file-serialize-field config 'port-num) "\n"
-       "protocol " (msmtp-file-serialize-field config 'protocol)))))
+       "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
+       "tls " (msmtp-file-serialize-field config 'enable-tls?)))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
