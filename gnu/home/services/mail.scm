@@ -52,6 +52,10 @@
    (string "")
    "String for the short-hand name to refer to this account."))
 
+;; Filter out the requested field from the configuration struct
+(define (msmtp-file-filter-fields field)
+  (filter-configuration-fields home-msmtp-configuration-fields (list field)))
+
 (define (add-msmtp-configuration config)
   `(("msmtp/config"
      ,(mixed-text-file
