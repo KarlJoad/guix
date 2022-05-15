@@ -41,11 +41,18 @@
 ;;;
 ;;;
 
-(define-record-type* <home-msmtp-configuration>
-  home-msmtp-configuration make-home-msmtp-configuration
-  home-msmtp-configuration?)
+;; Shadow the undefined serialize-string function for define-configuration to
+;; use for fields marked as of type string.
+(define (serialize-string field-name val) val)
 
-(define (add-msmtp-config-file he-symlink-path)
+(define-configuration home-msmtp-configuration
+  ;; home-msmtp-configuration make-home-msmtp-configuration
+  ;; home-msmtp-configuration?
+  (account
+   (string "")
+   "String for the short-hand name to refer to this account."))
+
+(define (add-msmtp-configuration config)
   `(("msmtp/config"
      ,(mixed-text-file
        "config"
@@ -60,7 +67,7 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt"))))
                 (extensions
                  (list (service-extension
                         home-xdg-configuration-files-service-type
-                        add-msmtp-config-file)))
+                        add-msmtp-configuration)))
                 (compose concatenate)
                 ;; (extend add-profile-extensions)
                 (default-value (home-msmtp-configuration))
