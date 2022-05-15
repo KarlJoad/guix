@@ -46,6 +46,7 @@
 ;; Shadow the undefined serialize-string function for define-configuration to
 ;; use for fields marked as of type string.
 (define (serialize-string field-name val) val)
+(define (serialize-number field-name val) (number->string val))
 
 (define (serialize-password-cmd field-name val)
   #~(string-append
@@ -76,7 +77,10 @@
   (pass-cmd
    (alist '()) ; I am not terribly fond of the single-element alist
    "Command & password file to interact with."
-   serialize-password-cmd))
+   serialize-password-cmd)
+  (port-num
+   (number 587)
+   "Port number for the SMTP server you are sending through."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -102,7 +106,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "from " (msmtp-file-serialize-field config 'email) "\n"
        "host " (msmtp-file-serialize-field config 'host) "\n"
        "user " (msmtp-file-serialize-field config 'user) "\n"
-       "passwordeval " (msmtp-file-serialize-field config 'pass-cmd)))))
+       "passwordeval " (msmtp-file-serialize-field config 'pass-cmd) "\n"
+       "port " (msmtp-file-serialize-field config 'port-num)))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
