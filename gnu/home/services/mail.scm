@@ -56,7 +56,10 @@
    "Email address the @emph{server} uses to send from.")
   (host
    (string "")
-   "Fully-qualified name for the SMTP server you are sending through."))
+   "Fully-qualified name for the SMTP server you are sending through.")
+  (user
+   (string "")
+   "User account to sign into SMTP server with."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -80,7 +83,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "account " (msmtp-file-serialize-field config 'account) "\n"
        "auth on\n"
        "from " (msmtp-file-serialize-field config 'email) "\n"
-       "host " (msmtp-file-serialize-field config 'host)))))
+       "host " (msmtp-file-serialize-field config 'host) "\n"
+       "user " (msmtp-file-serialize-field config 'user)))))
 
 (define home-msmtp-service-type
   (service-type (name 'home-msmtp)
