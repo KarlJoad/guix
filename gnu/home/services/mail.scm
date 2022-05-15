@@ -75,7 +75,8 @@
 defaults
 tls on
 tls_starttls on
-tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n"
+tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
+# Per-email account settings\n\n"
        "account " (msmtp-file-serialize-field config 'account) "\n"
        "auth on\n"
        "from " (msmtp-file-serialize-field config 'email) "\n"
