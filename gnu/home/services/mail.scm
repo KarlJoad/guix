@@ -56,6 +56,11 @@
 (define (msmtp-file-filter-fields field)
   (filter-configuration-fields home-msmtp-configuration-fields (list field)))
 
+;; Serialize a single field of the msmtp configuration file
+(define (msmtp-file-serialize-field config field)
+  ;; In here, config is the concrete, provided, instance of the configuration
+  (serialize-configuration config (msmtp-file-filter-fields field)))
+
 (define (add-msmtp-configuration config)
   `(("msmtp/config"
      ,(mixed-text-file
