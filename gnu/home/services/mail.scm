@@ -69,7 +69,8 @@
 defaults
 tls on
 tls_starttls on
-tls_trust_file /etc/ssl/certs/ca-certificates.crt"))))
+tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n"
+       "account " (msmtp-file-serialize-field config 'account)))))
 
 (define home-msmtp-service-type
   (service-type (name 'home-msmtp)
