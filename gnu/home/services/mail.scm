@@ -80,7 +80,10 @@
    serialize-password-cmd)
   (port-num
    (number 587)
-   "Port number for the SMTP server you are sending through."))
+   "Port number for the SMTP server you are sending through.")
+  (protocol
+   (string "smtp")
+   "Name of protocol mail is being sent to server over."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -107,7 +110,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "host " (msmtp-file-serialize-field config 'host) "\n"
        "user " (msmtp-file-serialize-field config 'user) "\n"
        "passwordeval " (msmtp-file-serialize-field config 'pass-cmd) "\n"
-       "port " (msmtp-file-serialize-field config 'port-num)))))
+       "port " (msmtp-file-serialize-field config 'port-num) "\n"
+       "protocol " (msmtp-file-serialize-field config 'protocol)))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
