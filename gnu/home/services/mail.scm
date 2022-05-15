@@ -50,7 +50,10 @@
   ;; home-msmtp-configuration?
   (account
    (string "")
-   "String for the short-hand name to refer to this account."))
+   "String for the short-hand name to refer to this account.")
+  (email
+   (string "")
+   "Email address the @emph{server} uses to send from."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -71,7 +74,8 @@ tls on
 tls_starttls on
 tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n"
        "account " (msmtp-file-serialize-field config 'account) "\n"
-       "auth on"))))
+       "auth on\n"
+       "from " (msmtp-file-serialize-field config 'email)))))
 
 (define home-msmtp-service-type
   (service-type (name 'home-msmtp)
