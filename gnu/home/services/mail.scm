@@ -18,6 +18,7 @@
 
 (define-module (gnu home services mail)
   #:use-module (srfi srfi-1)
+  #:use-module (ice-9 match)
   #:use-module (guix records)
   #:use-module (gnu services configuration)
   #:use-module (gnu home services)
@@ -45,6 +46,14 @@
 ;; use for fields marked as of type string.
 (define (serialize-string field-name val) val)
 
+(define (serialize-password-cmd field-name val)
+  #~(string-append
+     #$@(map
+         (match-lambda
+           ((cmd . file)
+            #~(string-append #$cmd " " #$file)))
+         val)))
+
 (define-configuration home-msmtp-configuration
   ;; home-msmtp-configuration make-home-msmtp-configuration
   ;; home-msmtp-configuration?
@@ -59,7 +68,11 @@
    "Fully-qualified name for the SMTP server you are sending through.")
   (user
    (string "")
-   "User account to sign into SMTP server with."))
+   "User account to sign into SMTP server with.")
+  (pass-cmd
+   (alist '()) ; I am not terribly fond of the single-element alist
+   "Command & password file to interact with."
+   serialize-password-cmd))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -84,7 +97,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "auth on\n"
        "from " (msmtp-file-serialize-field config 'email) "\n"
        "host " (msmtp-file-serialize-field config 'host) "\n"
-       "user " (msmtp-file-serialize-field config 'user)))))
+       "user " (msmtp-file-serialize-field config 'user) "\n"
+       "passwordeval " (msmtp-file-serialize-field config 'pass-cmd)))))
 
 (define home-msmtp-service-type
   (service-type (name 'home-msmtp)
