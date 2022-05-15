@@ -90,7 +90,10 @@
    "Name of protocol mail is being sent to server over.")
   (enable-tls?
    (boolean #t)
-   "Should mail be sent to SMTP server over a TLS connection?"))
+   "Should mail be sent to SMTP server over a TLS connection?")
+  (enable-starttls?
+   (boolean #t)
+   "Enable StartTLS, allowing SMTP connections to be secured."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -119,7 +122,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "passwordeval " (msmtp-file-serialize-field config 'pass-cmd) "\n"
        "port " (msmtp-file-serialize-field config 'port-num) "\n"
        "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
-       "tls " (msmtp-file-serialize-field config 'enable-tls?)))))
+       "tls " (msmtp-file-serialize-field config 'enable-tls?) "\n"
+       "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?)))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
