@@ -93,7 +93,12 @@
    "Should mail be sent to SMTP server over a TLS connection?")
   (enable-starttls?
    (boolean #t)
-   "Enable StartTLS, allowing SMTP connections to be secured."))
+   "Enable StartTLS, allowing SMTP connections to be secured.")
+  ;; The trust file /etc/ssl/certs/ca-certificates.crt is generated
+  ;; by ca-certificate-bundle in guix/profiles.scm
+  (tls-trust-file
+   (string "/etc/ssl/certs/ca-certificates.crt")
+   "File path to the @file{ca-certificates.crt} file."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -123,7 +128,8 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
        "port " (msmtp-file-serialize-field config 'port-num) "\n"
        "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
        "tls " (msmtp-file-serialize-field config 'enable-tls?) "\n"
-       "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?)))))
+       "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?) "\n"
+       "tls_trust_file " (msmtp-file-serialize-field config 'tls-trust-file)))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
