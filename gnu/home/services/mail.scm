@@ -26,6 +26,7 @@
   #:use-module (gnu home services utils)
   #:use-module (gnu packages mail) ; isync, msmtp, mu
   #:use-module (guix gexp)
+  #:use-module (guix profiles)
 
   #:export (home-msmtp-service-type
             home-msmtp-configuration
@@ -142,7 +143,10 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
                         add-msmtp-configuration)
                        (service-extension
                         home-profile-service-type
-                        add-msmtp-packages)))
+                        add-msmtp-packages)
+                       (service-extension
+                        home-profile-service-type
+                        ca-certificate-bundle)))
                 (compose concatenate)
                 ;; (extend add-profile-extensions)
                 (default-value (home-msmtp-configuration))
