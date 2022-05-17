@@ -108,32 +108,42 @@
    "File path to the @file{ca-certificates.crt} file."))
 
 (define (serialize-msmtp-account-configuration field-name val)
-  (format #t
+  #~(format #f
           "account ~a
 auth on
 from ~a
 host ~a
 user ~a
-passwordeval ~a\n\n"
-          ;; (serialize-msmtp-account-configuration 'account-name val)
-          (msmtp-account-configuration-account-name val)
-          (msmtp-account-configuration-email val)
-          (msmtp-account-configuration-host val)
-          (msmtp-account-configuration-user val)
-          (serialize-password-command 'pass-cmd
-                                  (msmtp-account-configuration-pass-cmd val))
-          ))
-           ;; "port " (msmtp-file-serialize-field config 'port-num) "\n"
-           ;; "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
-           ;; "tls " (msmtp-file-serialize-field config 'enable-tls?) "\n"
-           ;; "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?) "\n"
-;; "tls_trust_file " (msmtp-file-serialize-field config 'tls-trust-file)
+passwordeval ~a
+port ~a
+protocol ~a
+tls ~a
+tls_starttls ~a
+tls_trust_file ~a\n\n"
+          #$(msmtp-account-configuration-account-name val)
+          #$(msmtp-account-configuration-email val)
+          #$(msmtp-account-configuration-host val)
+          #$(msmtp-account-configuration-user val)
+          #$(serialize-password-command
+             'pass-cmd
+             (msmtp-account-configuration-pass-cmd val))
+          #$(msmtp-account-configuration-port-num val)
+          #$(msmtp-account-configuration-protocol val)
+          #$(serialize-boolean
+              'enable-tls?
+              (msmtp-account-configuration-enable-tls? val))
+          #$(serialize-boolean
+              'enable-starttls?
+              (msmtp-account-configuration-enable-starttls? val))
+          #$(msmtp-account-configuration-tls-trust-file val)))
+
 (define (msmtp-account-configuration-list? config-list)
   (and (list? config-list) (and-map msmtp-account-configuration? config-list)))
-(define (serialize-msmtp-account-configuration-list field-name val)
-  (for-each (lambda (val)
-              (serialize-msmtp-account-configuration field-name val))
-            val))
+(define (serialize-msmtp-account-configuration-list field-name config-list)
+  #~(string-append
+     #$@(map (lambda (config)
+               (serialize-msmtp-account-configuration field-name config))
+             config-list)))
 
 (define-configuration home-msmtp-configuration
   (package
@@ -142,7 +152,10 @@ passwordeval ~a\n\n"
   (accounts
    (msmtp-account-configuration-list
     (list (msmtp-account-configuration)))
-   "List of accounts to configure for MSMTP."))
+   "List of accounts to configure for MSMTP.")
+  (default-account
+    (string "")
+    "The @code{account-name} that should be considered the default."))
 
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
@@ -168,12 +181,12 @@ tls on
 tls_starttls on
 tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
 # Per-email account settings\n\n"
-       (with-output-to-string
-         (lambda ()
-           (serialize-msmtp-account-configuration-list
-            'accounts
-            (home-msmtp-configuration-accounts config))))
-       ))))
+       (serialize-msmtp-account-configuration-list
+        'accounts
+        (home-msmtp-configuration-accounts config))
+       "account default : "
+       (serialize-string 'default-account
+                         (home-msmtp-configuration-default-account config))))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
