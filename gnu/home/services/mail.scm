@@ -19,6 +19,7 @@
 (define-module (gnu home services mail)
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module (guix records)
   #:use-module (guix packages)
   #:use-module (gnu services configuration)
@@ -30,7 +31,11 @@
 
   #:export (home-msmtp-service-type
             home-msmtp-configuration
-            home-msmtp-configuration?))
+            msmtp-account-configuration
+            password-command
+
+            home-isync-service-type
+            home-mu-service-type))
 
 ;;; Commentary:
 ;;;
@@ -53,21 +58,23 @@
       "on"
       "off"))
 
-(define (serialize-password-cmd field-name val)
-  #~(string-append
-     #$@(map
-         (match-lambda
-           ((cmd . file)
-            #~(string-append #$cmd " " #$file)))
-         val)))
+(define-configuration password-command
+  (command
+   (file-like)
+   "Command to run on the provided file to get a password to use.")
+  (file
+   (string "")
+   "Path to a file containing a password to use.  This file will
+@emph{NOT} be added to the store, because the store is world-readable!"))
 
-(define-configuration home-msmtp-configuration
-  (package
-    (package msmtp)
-    "The MSMTP package to use.")
-  ;; home-msmtp-configuration make-home-msmtp-configuration
-  ;; home-msmtp-configuration?
-  (account
+(define (serialize-password-command field-name val)
+  #~(string-append
+   #$(password-command-command val)
+   " "
+   #$(password-command-file val)))
+
+(define-configuration msmtp-account-configuration
+  (account-name
    (string "")
    "String for the short-hand name to refer to this account.")
   (email
@@ -80,9 +87,8 @@
    (string "")
    "User account to sign into SMTP server with.")
   (pass-cmd
-   (alist '()) ; I am not terribly fond of the single-element alist
-   "Command & password file to interact with."
-   serialize-password-cmd)
+   (password-command)
+   "Command & password file to interact with.")
   (port-num
    (number 587)
    "Port number for the SMTP server you are sending through.")
@@ -101,6 +107,43 @@
    (string "/etc/ssl/certs/ca-certificates.crt")
    "File path to the @file{ca-certificates.crt} file."))
 
+(define (serialize-msmtp-account-configuration field-name val)
+  (format #t
+          "account ~a
+auth on
+from ~a
+host ~a
+user ~a
+passwordeval ~a\n\n"
+          ;; (serialize-msmtp-account-configuration 'account-name val)
+          (msmtp-account-configuration-account-name val)
+          (msmtp-account-configuration-email val)
+          (msmtp-account-configuration-host val)
+          (msmtp-account-configuration-user val)
+          (serialize-password-command 'pass-cmd
+                                  (msmtp-account-configuration-pass-cmd val))
+          ))
+           ;; "port " (msmtp-file-serialize-field config 'port-num) "\n"
+           ;; "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
+           ;; "tls " (msmtp-file-serialize-field config 'enable-tls?) "\n"
+           ;; "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?) "\n"
+;; "tls_trust_file " (msmtp-file-serialize-field config 'tls-trust-file)
+(define (msmtp-account-configuration-list? config-list)
+  (and (list? config-list) (and-map msmtp-account-configuration? config-list)))
+(define (serialize-msmtp-account-configuration-list field-name val)
+  (for-each (lambda (val)
+              (serialize-msmtp-account-configuration field-name val))
+            val))
+
+(define-configuration home-msmtp-configuration
+  (package
+    (package msmtp)
+    "The MSMTP package to use.")
+  (accounts
+   (msmtp-account-configuration-list
+    (list (msmtp-account-configuration)))
+   "List of accounts to configure for MSMTP."))
+
 ;; Filter out the requested field from the configuration struct
 (define (msmtp-file-filter-fields field)
   (filter-configuration-fields home-msmtp-configuration-fields (list field)))
@@ -109,6 +152,11 @@
 (define (msmtp-file-serialize-field config field)
   ;; In here, config is the concrete, provided, instance of the configuration
   (serialize-configuration config (msmtp-file-filter-fields field)))
+
+;; Serialize the entire msmtp configuration file
+(define (msmtp-file-serialize config)
+  ;; In here, config is the concrete, provided, instance of the configuration
+  (serialize-configuration config (msmtp-file-filter-fields '(account))))
 
 (define (add-msmtp-configuration config)
   `(("msmtp/config"
@@ -120,17 +168,12 @@ tls on
 tls_starttls on
 tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
 # Per-email account settings\n\n"
-       "account " (msmtp-file-serialize-field config 'account) "\n"
-       "auth on\n"
-       "from " (msmtp-file-serialize-field config 'email) "\n"
-       "host " (msmtp-file-serialize-field config 'host) "\n"
-       "user " (msmtp-file-serialize-field config 'user) "\n"
-       "passwordeval " (msmtp-file-serialize-field config 'pass-cmd) "\n"
-       "port " (msmtp-file-serialize-field config 'port-num) "\n"
-       "protocol " (msmtp-file-serialize-field config 'protocol) "\n"
-       "tls " (msmtp-file-serialize-field config 'enable-tls?) "\n"
-       "tls_starttls " (msmtp-file-serialize-field config 'enable-starttls?) "\n"
-       "tls_trust_file " (msmtp-file-serialize-field config 'tls-trust-file)))))
+       (with-output-to-string
+         (lambda ()
+           (serialize-msmtp-account-configuration-list
+            'accounts
+            (home-msmtp-configuration-accounts config))))
+       ))))
 
 (define (add-msmtp-packages config)
   (list (home-msmtp-configuration-package config)))
@@ -146,10 +189,11 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
                         add-msmtp-packages)
                        (service-extension
                         home-profile-service-type
-                        ca-certificate-bundle)))
+                        ca-certificate-bundle)
+                       ))
                 (compose concatenate)
                 ;; (extend add-profile-extensions)
-                (default-value (home-msmtp-configuration))
+                ;; (default-value (home-msmtp-configuration))
                 (description "Create @file{~/.msmtprc}, which is used
 by the @code{msmtp} program to send email to an SMTP mail server, which
 then forwards the mail on behalf of the sender.  This service type can
