@@ -107,7 +107,16 @@
    (string "/etc/ssl/certs/ca-certificates.crt")
    "File path to the @file{ca-certificates.crt} file."))
 
-(define (serialize-msmtp-account-configuration field-name val)
+(define (serialize-msmtp-account-configuration field-name config)
+  (define (filter-fields field)
+    (filter-configuration-fields msmtp-account-configuration-fields
+                                 (list field)))
+
+  (define (serialize-field field)
+    (serialize-configuration
+     config
+     (filter-fields field)))
+
   #~(format #f
           "account ~a
 auth on
@@ -120,22 +129,16 @@ protocol ~a
 tls ~a
 tls_starttls ~a
 tls_trust_file ~a\n\n"
-          #$(msmtp-account-configuration-account-name val)
-          #$(msmtp-account-configuration-email val)
-          #$(msmtp-account-configuration-host val)
-          #$(msmtp-account-configuration-user val)
-          #$(serialize-password-command
-             'pass-cmd
-             (msmtp-account-configuration-pass-cmd val))
-          #$(msmtp-account-configuration-port-num val)
-          #$(msmtp-account-configuration-protocol val)
-          #$(serialize-boolean
-              'enable-tls?
-              (msmtp-account-configuration-enable-tls? val))
-          #$(serialize-boolean
-              'enable-starttls?
-              (msmtp-account-configuration-enable-starttls? val))
-          #$(msmtp-account-configuration-tls-trust-file val)))
+          #$(serialize-field 'account-name)
+          #$(serialize-field 'email)
+          #$(serialize-field 'host)
+          #$(serialize-field 'user)
+          #$(serialize-field 'pass-cmd)
+          #$(serialize-field 'port-num)
+          #$(serialize-field 'protocol)
+          #$(serialize-field 'enable-tls?)
+          #$(serialize-field 'enable-starttls?)
+          #$(serialize-field 'tls-trust-file)))
 
 (define (msmtp-account-configuration-list? config-list)
   (and (list? config-list) (and-map msmtp-account-configuration? config-list)))
