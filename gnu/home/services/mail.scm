@@ -25,6 +25,7 @@
   #:use-module (gnu services configuration)
   #:use-module (gnu home services)
   #:use-module (gnu home services utils)
+  #:use-module (rnrs enums)
   #:use-module (gnu packages mail) ; isync, msmtp, mu
   #:use-module (guix gexp)
   #:use-module (guix profiles)
@@ -35,6 +36,10 @@
             password-command
 
             home-isync-service-type
+            home-mbsync-configuration
+            mbsync-configuration
+            mbsync-account-configuration
+
             home-mu-service-type))
 
 ;;; Commentary:
@@ -215,3 +220,200 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt\n\n
 by the @code{msmtp} program to send email to an SMTP mail server, which
 then forwards the mail on behalf of the sender.  This service type can
 be extended with a list of file-like objects.")))
+
+
+;;;
+;;; isync/mbsync
+;;;
+(define (string-list? strings)
+  (and (list? strings) (and-map string? strings)))
+(define (serialize-string-list field-name strings)
+  #~(string-append
+     #$@(map (lambda (config)
+               (serialize-string field-name config))
+             strings)))
+
+(define mbsync-ssl-types
+  (make-enumeration '(none
+                      starttls
+                      imaps)))
+(define (mbsync-ssl-types? ssl-type)
+  (enum-set-member? ssl-type mbsync-ssl-types))
+(define (serialize-mbsync-ssl-types field-name val)
+  (symbol->string val))
+
+(define mbsync-ssl-version-types
+  (make-enumeration '(sslv3
+                      tlsv1
+                      tlsv1.1
+                      tlsv1.2
+                      tlsv1.3)))
+(define (mbsync-ssl-version-types? ssl-version)
+  (enum-set-member? ssl-version mbsync-ssl-version-types))
+(define (serialize-mbsync-ssl-version-types field-name val)
+  (symbol->string val))
+(define (mbsync-ssl-version-types-list? ssl-versions-list)
+  (and (list? ssl-versions-list)
+       (and-map mbsync-ssl-version-types? ssl-versions-list)))
+(define (serialize-mbsync-ssl-version-types-list field-name vals)
+  #~(string-append
+     #$@(map (lambda (val)
+               (serialize-mbsync-ssl-version-types field-name val))
+             vals)))
+
+(define (serialize-mbsync-account-configuration field-name val)
+  (define (filter-fields field)
+    (filter-configuration-fields mbsync-account-configuration-fields
+                                 (list field)))
+
+  (define (serialize-field field)
+    (serialize-configuration
+     config
+     (filter-fields field)))
+  (format #f
+          "IMAPAccount ~a
+"
+          #$(serialize-field 'account-name)))
+
+(define-configuration mbsync-account-configuration
+  (account-name
+   (string "")
+   "Name to refer to this account.  Should also be a valid path name.")
+  (host
+   (string "")
+   "DNS name or IP address of server.")
+  (port
+   (number 993)
+   "TCP port number for IMAP.  993 is default for IMAPS, 143 for IMAP.")
+  (auth-mechs
+   (string-list (list ""))
+   "List of SASL mechanisms to use to attempt authentication.
+Legacy @code{LOGIN} mechanism is also supported.
+http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xhtml")
+  (user
+   (string "")
+   "The email address to synchronize.")
+  (pass-cmd
+   (password-command)
+   "Command to run with file as argument to produce a password.
+Make sure the command does @emph{not} produce TTY output, otherwise things
+get messy.")
+  (ssl-type
+   (mbsync-ssl-types)
+   "Connection security/encryption methods to use.")
+  (ssl-versions
+   (mbsync-ssl-version-types-list (list mbsync-ssl-version-types))
+   "List of acceptable TLS/SSL versions to use.")
+  (certificate-file
+   (string "")
+   "File-like object that creates a path to a X.509 certificate store.")
+  (pipeline-depth
+   (number 50)
+   "Number of IMAP commands in-flight simultaneously.  Setting to 1
+disables pipelining.  Setting to 0 makes pipeline unlimited."))
+
+(define-configuration mbsync-configuration
+  (account-config
+   (mbsync-account-configuration)
+   "Account configuration for the remote-side connection for this
+account's store.")
+  ;; (imap-store-config
+;;    mbsync-imap-store-configuration
+;;    "Store configuration for remote IMAP side of connection.")
+;;   (local-store-config
+;;    mbsync-local-store-configuration
+;;    "Store configuration for local side of connection.")
+;;   (channel-config
+;;    mbsync-channel-configuration
+;;    "Channel configuration determining how to synchronize mail between
+;; the remote and the local stores.")
+  )
+
+(define (serialize-alist field-name val)
+  #~(string-append
+     #$@(map
+         (match-lambda
+           ((key . value)
+            #~(string-append #$key " " #$value)))
+         val)))
+
+(define (path? maybe-path)
+  (string? maybe-path))
+(define (serialize-path field-name val)
+  val)
+
+(define (serialize-mbsync-configuration field-name config)
+  ;; TODO: Use for-each to serialize each element in the configuration.
+  (serialize-mbsync-account-configuration field-name config))
+  ;; (serialize-configuration config
+  ;;                          (mbsync-configuration-account-config config)))
+(define (mbsync-configuration-list? configs)
+  (and (list? configs) (and-map mbsync-configuration? configs)))
+(define (serialize-mbsync-configuration-list field-name vals)
+  #~(string-append
+     #$@(map (lambda (val)
+               (serialize-mbsync-configuration field-name val))
+             vals)))
+
+(define %default-mbsync-global-config
+  '(("Sync" . "All")
+    ("Create" . "Both")
+    ("Remove" . "None")
+    ("Expunge" . "Both")
+    ("CopyArrivalDate" . "yes")
+    ("SyncState" . "*")))
+
+(define-configuration home-mbsync-configuration
+  (package
+    (package isync)
+    "The @code{mbsync} package to use.")
+  (extra-global-config
+   (alist %default-mbsync-global-config)
+   "Global configuration that is not covered by any other configurations.
+The pair
+@lisp
+'((\"Sync\" . \"All\"))
+@end lisp
+
+turns into
+
+@example
+Sync All
+@end example")
+  (base-path
+   (path "~/Mail")
+   "The base path where all mail is placed.")
+  (accounts
+   (mbsync-configuration-list
+    (list (mbsync-configuration)))
+   "List of email accounts to configure."))
+
+(define (add-mbsync-configuration config)
+  `((".mbsyncrc"
+     ,(mixed-text-file
+       "mbsyncrc"
+       "Generated by Guix Home. Do not manually edit!"
+       (serialize-configuration
+        config
+        (filter-configuration-fields
+         home-mbsync-configuration-fields (list 'accounts)))))))
+
+(define (add-mbsync-package config)
+  (list (home-mbsync-configuration-package config)))
+
+(define home-isync-service-type
+  (service-type (name 'home-isync)
+                (extensions
+                 (list (service-extension
+                        home-files-service-type
+                        add-mbsync-configuration)
+                       (service-extension
+                        home-profile-service-type
+                        add-mbsync-package)))
+                (compose concatenate)
+                ;; (extend add-isync-extensions)
+                ;; (default-value (home-mbsync-configuration))
+                (description "Create a @file{.mbsyncrc} configuration
+file which is used by the @code{mbsync} program (from the isync project),
+which can synchronize IMAP and POP3 mailboxes.")))
+
