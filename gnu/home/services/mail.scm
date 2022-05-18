@@ -69,9 +69,9 @@
 
 (define (serialize-password-command field-name val)
   #~(string-append
-   #$(password-command-command val)
-   " "
-   #$(password-command-file val)))
+     #$(password-command-command val)
+     " "
+     #$(password-command-file val)))
 
 (define-configuration msmtp-account-configuration
   (account-name
@@ -118,7 +118,7 @@
      (filter-fields field)))
 
   #~(format #f
-          "account ~a
+            "account ~a
 auth on
 from ~a
 host ~a
@@ -129,16 +129,16 @@ protocol ~a
 tls ~a
 tls_starttls ~a
 tls_trust_file ~a\n\n"
-          #$(serialize-field 'account-name)
-          #$(serialize-field 'email)
-          #$(serialize-field 'host)
-          #$(serialize-field 'user)
-          #$(serialize-field 'pass-cmd)
-          #$(serialize-field 'port-num)
-          #$(serialize-field 'protocol)
-          #$(serialize-field 'enable-tls?)
-          #$(serialize-field 'enable-starttls?)
-          #$(serialize-field 'tls-trust-file)))
+            #$(serialize-field 'account-name)
+            #$(serialize-field 'email)
+            #$(serialize-field 'host)
+            #$(serialize-field 'user)
+            #$(serialize-field 'pass-cmd)
+            #$(serialize-field 'port-num)
+            #$(serialize-field 'protocol)
+            #$(serialize-field 'enable-tls?)
+            #$(serialize-field 'enable-starttls?)
+            #$(serialize-field 'tls-trust-file)))
 
 (define (msmtp-account-configuration-list? config-list)
   (and (list? config-list) (and-map msmtp-account-configuration? config-list)))
