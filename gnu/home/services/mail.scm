@@ -417,3 +417,8 @@ Sync All
 file which is used by the @code{mbsync} program (from the isync project),
 which can synchronize IMAP and POP3 mailboxes.")))
 
+
+;;;
+;;; mu
+;;;
+;; home-mu-service-type
