@@ -71,12 +71,15 @@ of CONFIG."
   (define package
     (apcupsd-configuration-package config))
 
+  (define pid-file "/var/run/apcupsd.pid")
+
   (define config-file
     (apcupsd-config-file config))
 
   (define apcupsd-command
     #~(list (string-append #$package "/sbin/apcupsd")
             "-b" ;; Do not fork off to background
+            "-P" #$pid-file
             "-f" #$(apcupsd-config-file config)
             "-d1"))
 
@@ -85,7 +88,8 @@ of CONFIG."
          (requirement '(networking syslogd))
          (provision '(apcupsd))
          ;; Use make-inetd-constructor??
-         (start #~(make-forkexec-constructor #$apcupsd-command))
+         (start #~(make-forkexec-constructor #$apcupsd-command
+                                             #:pid-file #$pid-file))
          (stop #~(make-kill-destructor)))))
 
 (define (extend-apcupsd-configuration config extras)
