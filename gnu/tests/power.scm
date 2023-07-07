@@ -62,6 +62,21 @@ it normally does."
                 (start-service 'apcupsd))
              marionette))
 
+          ;; Check apcupsd's PID file
+          (test-assert "apcupsd PID"
+            (let ((shepherd-pid (marionette-eval
+                                 '(begin
+                                    (use-modules (gnu services herd)
+                                                 (srfi srfi-1))
+                                    (live-service-running
+                                     (find (lambda (live)
+                                             (memq 'apcupsd
+                                                   (live-service-provision live)))
+                                           (current-services))))
+                                 marionette)))
+              (= shepherd-pid
+                 (wait-for-file "/var/run/apcupsd.pid" marionette))))
+
           (test-end))))
 
   (gexp->derivation name test))
