@@ -20,6 +20,8 @@
   #:use-module (gnu packages power)
   #:use-module (gnu services)
   #:use-module (gnu services shepherd)
+  #:use-module (guix packages)
+  #:use-module (guix build-system trivial)
   #:use-module (guix gexp)
   #:use-module (guix records)
   #:use-module (guix modules)
@@ -92,6 +94,44 @@ of CONFIG."
                                              #:pid-file #$pid-file))
          (stop #~(make-kill-destructor)))))
 
+(define (apcupsd-wrapper config)
+  "Wrap all the binaries in apcupsd to automatically pass the location
+of the config file for the service."
+  (define exp
+    #~(begin
+        ;; NOTE: sbin is the only one with ELF binaries. etc has SH scripts
+        (let ((og-bins #$(file-append (apcupsd-configuration-package config)
+                                      "/sbin/apctest")))
+          (apply execl og-bins og-bins
+                 "-f" #$(apcupsd-config-file config)
+                 (cdr (command-line))))))
+
+  (program-file "apctest-wrapped" exp))
+
+(define (apcupsd-profile-service config)
+  ;; XXX: profile-service-type only accepts <package> objects
+  (list
+   (package
+     (name "apcupsd-wrapper")
+     (version (package-version apcupsd))
+     (source (apcupsd-wrapper config))
+     (build-system trivial-build-system)
+     (arguments
+      '(#:modules ((guix build utils))
+        #:builder
+        (begin
+          (use-modules (guix build utils))
+          (let* ((source (assoc-ref %build-inputs "source"))
+                 (out (assoc-ref %outputs "out"))
+                 (sbin (string-append out "/sbin")))
+            (mkdir-p sbin)
+            (symlink source (string-append sbin "/apctest"))
+            #t))))
+     (home-page (package-home-page apcupsd))
+     (synopsis (package-synopsis apcupsd))
+     (description (package-description apcupsd))
+     (license (package-license apcupsd)))))
+
 (define (extend-apcupsd-configuration config extras)
   "Extend CONFIG with the extra EXTRAS."
   (apcupsd-configuration
@@ -103,7 +143,10 @@ of CONFIG."
                  "Monitor APC UPSes using the apcupsd daemon, @command{apcupsd}.")
                 (extensions
                  (list (service-extension shepherd-root-service-type
-                                          apcupsd-shepherd-service)))
+                                          apcupsd-shepherd-service)
+                       ;; Install wrapped apcaccess & apctest in system profile
+                       (service-extension profile-service-type
+                                          apcupsd-profile-service)))
                 (compose concatenate)
                 (extend extend-apcupsd-configuration)
                 (default-value (apcupsd-configuration))))
