@@ -12185,6 +12185,28 @@ aware of your profiles and configuration in ~/.aws/config.")
     (home-page "https://github.com/99designs/aws-vault")
     (license license:expat)))
 
+(define-public go-github-com-marcinbor85-gohex
+  (let ((commit "55fb1c624d845f0f5b79ee946cf09a15cb50ed89")
+        (revision "0"))
+    (package
+      (name "go-github-com-marcinbor85-gohex")
+      (version (git-version "0.0.0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/marcinbor85/gohex")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0klzqnvmkx6xvy9kc7hbsgpsdcrswnljsq8frf0jxddxi27qh1hn"))))
+      (build-system go-build-system)
+      (arguments '(#:import-path "github.com/marcinbor85/gohex"))
+      (home-page "https://github.com/marcinbor85/gohex")
+      (synopsis "A Go library for parsing Intel HEX files")
+      (description "A Go library for parsing Intel HEX files")
+      (license license:expat))))
+
 (define-public go-github-com-gsterjov-go-libsecret
   (let ((commit "a6f4afe4910cad8688db3e0e9b9ac92ad22d54e1")
         (revision "0"))
