@@ -12637,6 +12637,26 @@ detect the number of bytes written to a stream, so you can use it as a
 is undetermined, a customizable spinner is shown.")
     (license license:expat)))
 
+(define-public go-github-com-carrlos0-spin
+  (package
+   (name "go-github-com-carrlos0-spin")
+   (version "1.1.0")
+   (source (origin
+            (method git-fetch)
+            (uri (git-reference
+                  (url "https://github.com/caarlos0-graveyard/spin")
+                  (commit (string-append "v" version))))
+            (file-name (git-file-name name version))
+            (sha256
+             (base32
+              "1pnijds4145j8nsxvq8203r2sg2pbk7x8prkdg2ilghhrzqj6vyc"))))
+   (build-system go-build-system)
+   (arguments '(#:import-path "github.com/caarlos0/spin"))
+   (home-page "https://github.com/caarlos0-graveyard/spin")
+   (synopsis "A very simple spinner for cli golang apps")
+   (description "A very simple spinner for cli golang apps")
+   (license license:expat)))
+
 (define-public go-git-sr-ht-emersion-go-scfg
   (package
     (name "go-git-sr-ht-emersion-go-scfg")
