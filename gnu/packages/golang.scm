@@ -41,6 +41,7 @@
 ;;; Copyright © 2022 Christopher Howard <christopher@librehacker.com>
 ;;; Copyright © 2023 Hilton Chain <hako@ultrarare.space>
 ;;; Copyright © 2023 Timo Wilken <guix@twilken.net>
+;;; Copyright © 2023 Raven Hallsby <karl@hallsby.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -78,6 +79,7 @@
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnupg)
   #:use-module (gnu packages lua)
+  #:use-module (gnu packages libusb)
   #:use-module (gnu packages mail)
   #:use-module (gnu packages mp3)
   #:use-module (gnu packages password-utils)
@@ -8185,6 +8187,32 @@ semantically equal.")
 attributes.  It also contains some convenience functions for colors, SSH to
 and from termios translations, readCh, reading passwords, etc.")
       (license license:bsd-3))))
+
+(define-public go-github-com-google-gousb
+  (package
+   (name "go-github-com-google-gousb")
+   (version "2.1.0")
+   (source (origin
+            (method git-fetch)
+            (uri (git-reference
+                  (url "https://github.com/google/gousb")
+                  (commit (string-append "v" version))))
+            (file-name (git-file-name name version))
+            (sha256
+             (base32
+              "1aki6hk009sicrf7gxy5nkjmj4j7lsy0by4kjgd9bwq8ragfyv5x"))))
+   (native-inputs (list pkg-config libusb))
+   (build-system go-build-system)
+   (arguments
+    `(#:import-path "github.com/google/gousb"
+      #:phases (modify-phases %standard-phases
+                 ;; Delete the check phase because libusbContext and
+                 ;; libusbDevHandle cannot be allocated in Go.
+                 (delete 'check))))
+   (home-page "https://github.com/google/gousb")
+   (synopsis "Go-like bindings around the libusb library")
+   (description "Go-like bindings around the libusb library")
+   (license license:asl2.0)))
 
 (define-public go-github-com-google-go-querystring
   (let ((commit "992e8021cf787c100d55520d5c906e01536c0a19") ;fix format in tests
