@@ -1386,11 +1386,22 @@ is added to the OS specified in CONFIG."
    (stop #~(lambda ()
              (delete-file-recursively "/var/run/xenstored")))))))
 
+(define (xe-guest-utils-udev-rules-service config)
+  (let ((guest-utils (xe-guest-utilities-configuration-xe-guest-utilities config)))
+    (list
+     (file->udev-rule "z10_xen-vcpu-hotplug.rules"
+                      (file-append
+                       guest-utils
+                       ;; I hate this z10_ prefix too
+                       "/etc/udev/rules.d/z10_xen-vcpu-hotplug.rules")))))
+
 (define xe-guest-utilities-service-type
   (service-type
    (name 'xe-guest-utilities)
    (extensions (list (service-extension shepherd-root-service-type
-                                        xe-guest-utils-service)))
+                                        xe-guest-utils-service)
+                     (service-extension udev-service-type
+                                        xe-guest-utils-udev-rules-service)))
    (default-value (xe-guest-utilities-configuration))
    (description
     "Enable a Guix System VM to communicate with a Xen-based hypervisor host.")))
