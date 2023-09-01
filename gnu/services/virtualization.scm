@@ -1403,13 +1403,21 @@ is added to the OS specified in CONFIG."
                        ;; I hate this z10_ prefix too
                        "/etc/udev/rules.d/z10_xen-vcpu-hotplug.rules")))))
 
+(define (xe-guest-utils-profile-service config)
+  ;; XXX: profile-service-type only accepts <package> objects
+  (let ((guest-utils (xe-guest-utilities-configuration-xe-guest-utilities config)))
+    (list
+     guest-utils)))
+
 (define xe-guest-utilities-service-type
   (service-type
    (name 'xe-guest-utilities)
    (extensions (list (service-extension shepherd-root-service-type
                                         xe-guest-utils-service)
                      (service-extension udev-service-type
-                                        xe-guest-utils-udev-rules-service)))
+                                        xe-guest-utils-udev-rules-service)
+                     (service-extension profile-service-type
+                                        xe-guest-utils-profile-service)))
    (default-value (xe-guest-utilities-configuration))
    (description
     "Enable a Guix System VM to communicate with a Xen-based hypervisor host.")))
