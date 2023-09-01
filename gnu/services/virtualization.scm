@@ -1359,7 +1359,7 @@ is added to the OS specified in CONFIG."
    (one-shot? #t)
    (start #~(make-forkexec-constructor
              (list #$(file-append xe-guest-utilities "/bin/xe-linux-distribution")
-                   "/var/cache/xe-linux-distribution")
+                   "/var/run/xe-linux-distribution")
              #:environment-variables))
    (stop #~(make-kill-destructor)))
 
