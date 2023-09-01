@@ -31,6 +31,7 @@
   #:use-module (gnu packages package-management)
   #:use-module (gnu packages ssh)
   #:use-module (gnu packages base)
+  #:use-module (gnu packages gawk)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages virtualization)
   #:use-module (gnu services base)
@@ -1360,7 +1361,13 @@ is added to the OS specified in CONFIG."
    (start #~(make-forkexec-constructor
              (list #$(file-append xe-guest-utilities "/bin/xe-linux-distribution")
                    "/var/run/xe-linux-distribution")
-             #:environment-variables))
+             #:environment-variables
+             (list (string-append
+                    "PATH="
+                    #$(file-append xe-guest-utilities "/bin") ":"
+                    #$(file-append coreutils "/bin") ":" ;uname & co
+                    #$(file-append gawk "/bin") ":"
+                    #$(file-append sed "/bin")))))
    (stop #~(make-kill-destructor)))
 
   ;; Generate <shepherd-service>s to mount the xen directory in /proc.
