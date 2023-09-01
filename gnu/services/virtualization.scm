@@ -33,6 +33,9 @@
   #:autoload   (gnu packages gnupg) (guile-gcrypt)
   #:use-module (gnu packages package-management)
   #:use-module (gnu packages ssh)
+  #:use-module (gnu packages base)
+  #:use-module (gnu packages gawk)
+  #:use-module (gnu packages linux)
   #:use-module (gnu packages virtualization)
   #:use-module (gnu services base)
   #:use-module (gnu services configuration)
@@ -107,7 +110,10 @@
 
             qemu-guest-agent-configuration
             qemu-guest-agent-configuration?
-            qemu-guest-agent-service-type))
+            qemu-guest-agent-service-type
+
+            xe-guest-agent-configuration
+            xe-guest-agent-service-type))
 
 (define (uglify-field-name field-name)
   (let ((str (symbol->string field-name)))
@@ -1006,6 +1012,77 @@ specified, the QEMU default path is used."))
 
 
 ;;;
+;;; Guest agent for VMs running under Xen
+;;;
+(define-configuration/no-serialization xe-guest-agent-configuration
+  (package
+   (package xe-guest-utilities)
+   "Xen guest management utilities package.")
+  (pid-file
+   (string "/var/run/xe-daemon.pid")
+   "Path to the file holding the PID of xe-deamon."))
+
+(define (generate-xe-guest-agent-documentation)
+  "Generate documentation for xe-guest-agent fields"
+  (generate-documentation
+   `((xe-guest-agent-configuration ,xe-guest-agent-configuration-fields))
+   'xe-guest-agent-configuration))
+
+(define (xe-guest-agent-shepherd-service config)
+  (let ((xe-guest-utils (xe-guest-agent-configuration-package config))
+        (pid-file (xe-guest-agent-configuration-pid-file config)))
+    (list
+     (shepherd-service
+      (provision '(xe-guest-agent))
+      (requirement '(networking user-processes udev))
+      (documentation "Run the Xen guest management agent.")
+      (start
+       #~(lambda _
+           (let ((pid (make-forkexec-constructor
+                       (list
+                        #$(file-append xe-guest-utils
+                                       "/sbin/xe-daemon")
+                        "-p" #$pid-file)
+                       #:log-file "/var/log/xe-daemon.log"
+                       #:pid-file #$pid-file
+                       #:environment-variables
+                       (list (string-append
+                              "PATH="
+                              #$(file-append xe-guest-utils "/bin") ":"
+                              ;; logger
+                              #$(file-append inetutils "/bin"))))))
+             ;; Run xe-linux-distribution script before starting the actual
+             ;; daemon. The script collects some basic system information that
+             ;; is shared back to the Xen host.
+             (system* #$(file-append xe-guest-utils "/sbin/xe-linux-distribution")
+                      "/var/cache/xe-linux-distribution")
+             ;; Finally, start and return the PID made by
+             ;; make-forkexec-constructor.
+             pid)))
+      (stop #~(make-kill-destructor))))))
+
+(define (xe-guest-agent-udev-rules-service config)
+  (let ((guest-utils (xe-guest-agent-configuration-package config)))
+    (list
+     (file->udev-rule "z10_xen-vcpu-hotplug.rules"
+                      (file-append
+                       guest-utils
+                       ;; I hate this z10_ prefix too
+                       "/lib/udev/rules.d/z10_xen-vcpu-hotplug.rules")))))
+
+(define xe-guest-agent-service-type
+  (service-type
+   (name 'xe-guest-agent)
+   (extensions
+    (list (service-extension shepherd-root-service-type
+                             xe-guest-agent-shepherd-service)
+          (service-extension udev-service-type
+                             xe-guest-agent-udev-rules-service)))
+   (default-value (xe-guest-agent-configuration))
+   (description "Run the Xen guest management utilities.")))
+
+
+;;;
 ;;; Secrets for guest VMs.
 ;;;
 
@@ -1860,3 +1937,102 @@ machines in /etc/guix/machines.scm."
    (description
     "Provide a virtual machine (VM) running GNU/Hurd, also known as a
 @dfn{childhurd}.")))
+
+(define-configuration/no-serialization xe-guest-utilities-configuration
+  (xe-guest-utilities
+   (file-like xe-guest-utilities)
+   "XenServer guest utilities package.")
+  (pid-file
+   (string "/var/run/xe-daemon.pid")
+   "File holding the PID of xe-deamon."))
+
+(define (generate-xe-guest-utilities-documentation)
+  "Generate documentation for xe-guest-utilities fields"
+  (generate-documentation
+   `((xe-guest-utilities-configuration ,xe-guest-utilities-configuration-fields))
+   'xe-guest-utilities-configuration))
+
+(define (xe-guest-utils-service config)
+  (let ((pid-file (xe-guest-utilities-configuration-pid-file config)))
+    (list
+     ;; Generate <shepherd-service>s that run the xe-daemon forever.
+     (shepherd-service
+      (documentation "Run the xe-guest-utilities daemon.")
+      (provision '(xe-guest-utilities-daemon))
+      (requirement '(xe-guest-utilities-procfs
+                     xe-guest-utilities-distro))
+      (start #~(make-forkexec-constructor
+                (list #$(file-append xe-guest-utilities "/bin/xe-daemon")
+                      "-p" #$pid-file)
+                #:pid-file #$pid-file
+                #:environment-variables
+                (list (string-append
+                       "PATH=/run/current-system/profile/bin:"
+                       "/run/current-system/profile/sbin:"
+                       #$(file-append coreutils "/bin") ":"
+                       #$(file-append iproute "/bin")))))
+      (stop #~(make-kill-destructor)))
+
+  ;; Generate one-shot <shepherd-service>s that informs the host hypervisor about
+  ;; the distribution of the guest (Guix in this case)
+  (shepherd-service
+   (documentation "Inform host hypervisor of guest's distribution.")
+   (provision '(xe-guest-utilities-distro))
+   (requirement '(;;xe-guest-utilities-xend
+                  ))
+   (one-shot? #t)
+   (start #~(make-forkexec-constructor
+             (list #$(file-append xe-guest-utilities "/bin/xe-linux-distribution")
+                   "/var/run/xe-linux-distribution")
+             #:environment-variables
+             (list (string-append
+                    "PATH="
+                    #$(file-append xe-guest-utilities "/bin") ":"
+                    #$(file-append coreutils "/bin") ":" ;uname & co
+                    #$(file-append gawk "/bin") ":"
+                    #$(file-append sed "/bin")))))
+   (stop #~(make-kill-destructor)))
+
+  ;; Generate <shepherd-service>s to mount the xen directory in /proc.
+  (shepherd-service
+   (documentation "Mount /proc/xen files.")
+   (provision '(xe-guest-utilities-procfs))
+   (requirement '(file-systems))
+   (start #~(lambda ()
+              (mount "xenfs" "/proc/xen" "/proc/xen")
+              (member "/proc/xen" (mount-points))))
+   (stop #~(lambda ()
+             (umount "/proc/xen" MNT_DETACH)
+             (not (member "/proc/xen" (mount-points))))))
+
+  ;; Generate <shepherd-service>s to create the necessary temporary directories for XenStore.
+  (shepherd-service
+   (documentation "Provide a temporary directory for XenStore.")
+   (provision '(xe-guest-utilities-tmp-dir))
+   (one-shot? #t)
+   (requirement '(file-systems))
+   (start #~(lambda ()
+              (mkdir "/var/run/xenstored")
+              (chmod o755 "/var/run/xenstored")))
+   (stop #~(lambda ()
+             (delete-file-recursively "/var/run/xenstored")))))))
+
+(define (xe-guest-utils-udev-rules-service config)
+  (let ((guest-utils (xe-guest-utilities-configuration-xe-guest-utilities config)))
+    (list
+     (file->udev-rule "z10_xen-vcpu-hotplug.rules"
+                      (file-append
+                       guest-utils
+                       ;; I hate this z10_ prefix too
+                       "/etc/udev/rules.d/z10_xen-vcpu-hotplug.rules")))))
+
+(define xe-guest-utilities-service-type
+  (service-type
+   (name 'xe-guest-utilities)
+   (extensions (list (service-extension shepherd-root-service-type
+                                        xe-guest-utils-service)
+                     (service-extension udev-service-type
+                                        xe-guest-utils-udev-rules-service)))
+   (default-value (xe-guest-utilities-configuration))
+   (description
+    "Enable a Guix System VM to communicate with a Xen-based hypervisor host.")))

@@ -36873,6 +36873,36 @@ host.  If empty, QEMU uses a default file name.
 @end table
 @end deftp
 
+@subsubheading Xen Guest Agent
+
+@cindex xen
+@cindex xen guest agent
+
+The Xen guest agent allows a Xen host to control the emulated system.
+The @code{xe-guest-agent} service runs the agent on Guix guests.
+
+@quotation Note
+The default Linux-libre kernel that Guix ships already enables the
+necessary features for a guest.  There is nothing you need to enable for
+the guest to fully support paravirtualization features.
+@end quotation
+
+@defvar xe-guest-agent-service-type
+Service type for the QEMU guest agent service.
+@end defvar
+
+@deftp {Data Type} xe-guest-agent-configuration
+Configuration for the @code{xen-guest-agent} service.
+
+@table @asis
+@item @code{package} (default: @code{xen-guest-utilities})
+The Xen guest utilities package to use.
+
+@item @code{pid-file} (default: @code{"/var/run/xe-daemon.pid"})
+Path to the file holding the PID of xe-deamon.
+@end table
+@end deftp
+
 
 @anchor{build-vm}
 @subsubheading Virtual Build Machines
