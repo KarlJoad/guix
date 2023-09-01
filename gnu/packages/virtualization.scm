@@ -2432,6 +2432,63 @@ which is a hypervisor.")
     (license license:gpl2)
     (supported-systems '("i686-linux" "x86_64-linux" "armhf-linux"))))
 
+(define-public xe-guest-utilities
+  (package
+    (name "xe-guest-utilities")
+    (version "8.3.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/xenserver/xe-guest-utilities")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1igb3w6bdg1g41rgs24bic8mf8y1ry6ci7mpzkfh828y2cydz0l2"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:import-path "github.com/xenserver/xe-guest-utilities"
+      #:tests? #f ; There are no tests
+      #:install-source? #f
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'patch-source-shebangs 'fix-udev-rule
+            (lambda* (#:key inputs import-path #:allow-other-keys)
+              (substitute* (string-append "src/" import-path "/mk/xen-vcpu-hotplug.rules")
+                (("/bin/sh") (search-input-file inputs "/bin/sh")))))
+          (replace 'build
+            (lambda* (#:key import-path #:allow-other-keys)
+              (with-directory-excursion (string-append "src/" import-path)
+                ;; Explicitly state version, removes git as native-input
+                (invoke "make" (string-append "RELEASE=" #$version) "build"))))
+          (replace 'install
+            (lambda* (#:key outputs import-path #:allow-other-keys)
+              (let ((built-base (string-append "src/" import-path "/build/stage")))
+                (copy-recursively
+                 (string-append built-base "/usr/bin")
+                 (string-append (assoc-ref outputs "out") "/bin"))
+                (copy-recursively
+                 (string-append built-base "/usr/sbin")
+                 (string-append (assoc-ref outputs "out") "/bin"))
+                (copy-recursively
+                 (string-append built-base "/etc/udev")
+                 (string-append (assoc-ref outputs "out") "/etc/udev"))))))))
+    (native-inputs
+     (list
+      go-golang-org-x-sys))
+    (inputs
+     (list
+      bash-minimal))
+    (home-page "https://github.com/xenserver/xe-guest-utilities")
+    (synopsis "XenServer guest utilities for unix-like operating systems")
+    (description "The XenServer guest utilities enable a Xen-based hypervisor,
+(Citrix XenServer, XCP-NG, etc.) to work with a Xen-enabled Unix-like guest VMs.
+This allows the guest to share information about its state back to the host,
+such IP address, memory usage, etc. and allows the host to inform the guest VM
+about events that change the virtualized hardware, such as hotplugging.")
+    (license license:bsd-2)))
+
 (define-public osinfo-db-tools
   (package
     (name "osinfo-db-tools")
