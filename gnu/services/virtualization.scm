@@ -1379,6 +1379,7 @@ is added to the OS specified in CONFIG."
   (shepherd-service
    (documentation "Provide a temporary directory for XenStore.")
    (provision '(xe-guest-utilities-tmp-dir))
+   (one-shot? #t)
    (requirement '(file-systems))
    (start #~(lambda ()
               (mkdir "/var/run/xenstored")
