@@ -104,6 +104,7 @@
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages gnupg)
   #:use-module (gnu packages golang)
+  #:use-module (gnu packages golang-build)
   #:use-module (gnu packages gperf)
   #:use-module (gnu packages graphviz)
   #:use-module (gnu packages gtk)
@@ -2771,6 +2772,93 @@ which is a hypervisor.")
     ;; TODO: Some files are licensed differently.  List those.
     (license license:gpl2)
     (supported-systems '("i686-linux" "x86_64-linux" "armhf-linux"))))
+
+(define-public xe-guest-utilities
+  (package
+    (name "xe-guest-utilities")
+    (version "8.4.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/xenserver/xe-guest-utilities")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1yqspizhq3ii6cz2w75slaxy8838yyri9pmgc2q1radnm7w735if"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:import-path "github.com/xenserver/xe-guest-utilities"
+      #:install-source? #f
+      #:tests? #f ; There are no tests.
+      #:phases
+      #~(modify-phases %standard-phases
+          ;; Despite using go-build-system, this project does not use Go's build
+          ;; infrastructure to do anything, instead relying on a Makefile.
+          ;; NOTE: This target builds a tarball, but it is only filled with
+          ;; 2 binaries, 1 script, and a bunch of text files; it is tiny.
+          (add-after 'patch-source-shebangs 'fix-udev-rule
+            (lambda* (#:key inputs import-path #:allow-other-keys)
+              (substitute* (string-append "src/" import-path "/mk/xen-vcpu-hotplug.rules")
+                (("/bin/sh") (search-input-file inputs "/bin/sh")))))
+          (replace 'build
+            (lambda* (#:key import-path #:allow-other-keys)
+              (let* ((version #$version)
+                     (version-split (string-split version #\.))
+                     (major-version (list-ref version-split 0))
+                     (minor-version (list-ref version-split 1))
+                     (micro-version (list-ref version-split 2))
+                     (build-number  "0"))
+                (with-directory-excursion (string-append "src/" import-path)
+                  ;; Perform a buggy substitution. In Guix, the Go's guestmetric
+                  ;; import will resolve to the source version, NOT the version
+                  ;; the Makefile and sed substituted into build/. So we perform
+                  ;; the correct substitution.
+                  ;; This file list is what make & sed substitute, but we do it
+                  ;; in-place too.
+                  (substitute* (list "xe-daemon/xe-daemon.go"
+                                     "syslog/syslog.go"
+                                     "system/system.go"
+                                     "guestmetric/guestmetric.go"
+                                     "guestmetric/guestmetric_linux.go"
+                                     "xenstoreclient/xenstore.go"
+                                     "xenstore/xenstore.go")
+                    (("@PRODUCT_MAJOR_VERSION@") major-version)
+                    (("@PRODUCT_MINOR_VERSION@") minor-version)
+                    (("@PRODUCT_MICRO_VERSION@") micro-version)
+                    (("@NUMERIC_BUILD_NUMBER@")  build-number))
+                  ;; Explicitly state version, removes git as native-input and
+                  ;; removes using git commit hash as an ID.
+                  ;; NOTE: The final step of the Makefile's build target is to "cd"
+                  ;; to the final build directory.
+                  (invoke "make" "build"
+                          (string-append "RELEASE=" version)
+                          (string-append "PRODUCT_MAJOR_VERSION=" major-version)
+                          (string-append "PRODUCT_MINOR_VERSION=" minor-version)
+                          (string-append "PRODUCT_MICRO_VERSION=" micro-version))))))
+          ;; The default "install" actions produce package-manager-specific
+          ;; outputs, .deb, .rpm, and .tgz. We just copy the final build
+          ;; products out.
+          (replace 'install
+            (lambda* (#:key outputs import-path #:allow-other-keys)
+              (let* ((stage (string-append "src/" import-path "/build/stage"))
+                     (out (assoc-ref outputs "out")))
+                ;; Put udev rules in #$output/lib/udev/rules.d/
+                (copy-recursively (string-append stage "/etc/udev")
+                                  (string-append out "/lib/udev"))
+                ;; Copy produced binaries and scripts
+                (copy-recursively (string-append stage "/usr") out)))))))
+    (native-inputs (list go-golang-org-x-sys))
+    (inputs (list bash-minimal))
+    (home-page "https://github.com/xenserver/xe-guest-utilities")
+    (synopsis "XenServer guest utilities for unix-like operating systems")
+    (description "The XenServer guest utilities enable a Xen-based hypervisor,
+(Citrix XenServer, XCP-ng, etc.) to work with a Xen-enabled Unix-like guest VMs.
+This allows the guest to share information about its state back to the host,
+such IP address, memory usage, etc. and allows the host to inform the guest VM
+about events that change the virtualized hardware, such as hotplugging.")
+    (license license:bsd-2)))
 
 (define-public osinfo-db-tools
   (package

@@ -6,6 +6,7 @@
 ;;; Copyright © 2022 Oleg Pykhalov <go.wigust@gmail.com>
 ;;; Copyright © 2022 Leo Nikkilä <hello@lnikki.la>
 ;;; Copyright © 2023 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2024 Raven Hallsby <karl@hallsby.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
