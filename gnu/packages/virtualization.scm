@@ -2582,7 +2582,7 @@ DOS or Microsoft Windows.")
 (define-public xen
   (package
     (name "xen")
-    (version "4.14.6")               ; please update the mini-os input as well
+    (version "4.17.2")               ; please update the mini-os input as well
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -2591,10 +2591,7 @@ DOS or Microsoft Windows.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1cdzpxbihkdn4za8ly0lgkbxrafjzbxjflhfn83kyg4bam1vv7mn"))
-              (patches
-               (search-patches "xen-docs-use-predictable-ordering.patch"
-                               "xen-remove-config.gz-timestamp.patch"))))
+                "1mqjgprncx52kwpqh9i5w22ckrmrif8hn539nsbzxmdvr2lypkzs"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -2756,7 +2753,7 @@ DOS or Microsoft Windows.")
                ;; at time of packaging, but upstream has unfortunately modified
                ;; existing tags in the past.  Also, not all Xen releases get a
                ;; new tag.  See <https://xenbits.xen.org/gitweb/?p=mini-os.git>.
-               (commit "f57858b7e8ef8dd48394dd08cec2bef3c9fb92f5")))
+               (commit "2d1dfccd3aa343b53ec6b5e051c228dcf89aba7f")))
          (sha256
           (base32 "04y7grxs47amvjcq1rq4jgk174rhid5m2z9w8wrv7rfd2xhazxy1"))
          (file-name (string-append name "-" version "-mini-os-git-checkout")))
