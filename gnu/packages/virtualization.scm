@@ -2225,7 +2225,7 @@ DOS or Microsoft Windows.")
 (define-public xen
   (package
     (name "xen")
-    (version "4.14.1")               ; please update the mini-os input as well
+    (version "4.17.2")               ; please update the mini-os input as well
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -2234,7 +2234,7 @@ DOS or Microsoft Windows.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1r90rvypw76ya9clqw5p02gm1k8hxz73f7gr95ca778nnzvb7xjw"))))
+                "1mqjgprncx52kwpqh9i5w22ckrmrif8hn539nsbzxmdvr2lypkzs"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -2410,7 +2410,7 @@ override CC = " (assoc-ref inputs "cross-gcc") "/bin/i686-linux-gnu-gcc"))
                ;; This corresponds to (string-append "xen-RELEASE-" version))
                ;; at time of packaging, but upstream has unfortunately modified
                ;; existing tags in the past.
-               (commit "0b4b7897e08b967a09bed2028a79fabff82342dd")))
+               (commit "2d1dfccd3aa343b53ec6b5e051c228dcf89aba7f")))
          (sha256
           (base32 "1i8pcl19n60i2m9vlg79q3nknpj209c9ic5x10wxaicx45kc107f"))
          (file-name "mini-os-git-checkout")))
