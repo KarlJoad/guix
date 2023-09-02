@@ -18,6 +18,8 @@
 
 (define-module (gnu services power)
   #:use-module (gnu packages power)
+  #:use-module (gnu packages base)
+  #:use-module (gnu packages mail)
   #:use-module (gnu services)
   #:use-module (gnu services shepherd)
   #:use-module (guix packages)
@@ -90,8 +92,15 @@ of CONFIG."
          (requirement '(networking syslogd))
          (provision '(apcupsd))
          ;; Use make-inetd-constructor??
-         (start #~(make-forkexec-constructor #$apcupsd-command
-                                             #:pid-file #$pid-file))
+         (start #~(make-forkexec-constructor
+                   #$apcupsd-command
+                   #:pid-file #$pid-file
+                   #:environment-variables
+                   (list (string-append
+                          "PATH="
+                          #$(file-append package "/sbin") ":"
+                          #$(file-append mailutils "/bin") ":"
+                          #$(file-append coreutils "/bin")))))
          (stop #~(make-kill-destructor)))))
 
 (define (apcupsd-wrapper config)
