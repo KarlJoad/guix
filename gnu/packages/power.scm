@@ -27,6 +27,7 @@
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages admin)
   #:use-module (gnu packages linux)
+  #:use-module (gnu packages mail)
   #:use-module (gnu packages gd)
   #:use-module ((guix licenses) #:prefix license:))
 
@@ -90,6 +91,9 @@
          (string-append "ac_cv_path_SHUTDOWN=" #$shepherd "/sbin/shutdown")
          (string-append "ac_cv_path_REBOOT=" #$shepherd "/sbin/reboot")
          (string-append "ac_cv_path_WALL=" #$util-linux "/bin/wall")
+         ;; FIXME: Use function that returns a package to set APCUPSD_MAIL.
+         ;; Allows for mailutils, sendmail, nullmailer, etc. variants to be defined.
+         (string-append "ac_cv_path_APCUPSD_MAIL=" #$(file-append mailutils "/bin/mail"))
          "--enable-test" ;; Enable test driver code.
          "--enable-usb"  ;; Add USB support
          "--enable-net"
