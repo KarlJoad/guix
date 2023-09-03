@@ -45,7 +45,9 @@
        (patches
         (search-patches
          ;; Need to change doshutdown and doreboot event commands
-         "apcupsd-apccontrol-shutdown.patch")) ; shepherd shutdown has no args
+         "apcupsd-apccontrol-shutdown.patch" ; shepherd shutdown has no args
+         ;; Give apccontrol a REBOOT, shepherd shutdown does not have -r option
+         "apcupsd-apccontrol-reboot.patch"))
        (modules '((guix build utils)))
        (snippet
         #~(list
@@ -86,6 +88,7 @@
          ;; pwrfail-dir is where power failure files get put during UPS event
          "--with-pwrfail-dir=/run/apcupsd"
          (string-append "ac_cv_path_SHUTDOWN=" #$shepherd "/sbin/shutdown")
+         (string-append "ac_cv_path_REBOOT=" #$shepherd "/sbin/reboot")
          (string-append "ac_cv_path_WALL=" #$util-linux "/bin/wall")
          "--enable-test" ;; Enable test driver code.
          "--enable-usb"  ;; Add USB support

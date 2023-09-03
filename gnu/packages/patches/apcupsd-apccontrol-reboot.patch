@@ -1,0 +1,94 @@
+--- apcupsd-svn-r2381-tags-Release-3_14_14/configure	2023-09-02 20:37:20.029930797 -0500
++++ apcupsd-svn-r2381-tags-Release-3_14_14/configure	2023-09-02 20:38:53.388788433 -0500
+@@ -708,6 +708,7 @@
+ WALL
+ APCUPSD_MAIL
+ SHUTDOWN
++REBOOT
+ APCTEST
+ SMTP
+ APCACCESS
+@@ -4114,3 +4114,55 @@
++for ac_prog in reboot reboot.bsd
++do
++  # Extract the first word of "$ac_prog", so it can be a program name with args.
++set dummy $ac_prog; ac_word=$2
++{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if test "${ac_cv_path_REBOOT+set}" = set; then
++  $as_echo_n "(cached) " >&6
++else
++  case $REBOOT in
++  [\\/]* | ?:[\\/]*)
++  ac_cv_path_REBOOT="$REBOOT" # Let the user override the test with a path.
++  ;;
++  *)
++  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++for as_dir in $PATH
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++  for ac_exec_ext in '' $ac_executable_extensions; do
++  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
++    ac_cv_path_REBOOT="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++done
++IFS=$as_save_IFS
++
++  ;;
++esac
++fi
++REBOOT=$ac_cv_path_REBOOT
++if test -n "$REBOOT"; then
++  { $as_echo "$as_me:$LINENO: result: $REBOOT" >&5
++$as_echo "$REBOOT" >&6; }
++else
++  { $as_echo "$as_me:$LINENO: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++
++  test -n "$REBOOT" && break
++done
++
++    if test "$REBOOT" = "" ; then
++       { { $as_echo "$as_me:$LINENO: error: Missing required tool; need any one of: reboot reboot.bsd" >&5
++$as_echo "$as_me: error: Missing required tool; need any one of: reboot reboot.bsd" >&2;}
++   { (exit 1); exit 1; }; }
++    fi
++
++
+ for ac_prog in mail
+ do
+   # Extract the first word of "$ac_prog", so it can be a program name with args.
+@@ -14710,6 +14762,7 @@
+   Linker flags:               ${LDFLAGS}
+   Host and version:           ${DISTNAME} ${DISTVER}
+   Shutdown Program:           ${SHUTDOWN}
++  Reboot Program:             ${REBOOT}
+   Port/Device:                ${SERIALDEV}
+   Network Info Port (CGI):    ${NISPORT}
+   UPSTYPE                     ${UPSTYPE}
+
+--- apcupsd-svn-r2381-tags-Release-3_14_14/platforms/apccontrol.in	2023-09-02 20:31:08.774566706 -0500
++++ apcupsd-svn-r2381-tags-Release-3_14_14/platforms/apccontrol.in	2023-09-02 20:41:11.489015513 -0500
+@@ -21,6 +21,7 @@
+ APCPID=@PIDDIR@/apcupsd.pid
+ APCUPSD=@sbindir@/apcupsd
+ SHUTDOWN=@SHUTDOWN@
++REBOOT=@REBOOT@
+ SCRIPTSHELL=@SCRIPTSHELL@
+ SCRIPTDIR=@sysconfdir@
+ WALL=wall
+@@ -104,7 +105,7 @@
+     ;;
+     doreboot)
+ 	echo "UPS ${2} initiating Reboot Sequence" | ${WALL}
+-	${SHUTDOWN} -r now "apcupsd UPS ${2} initiated reboot"
++	${REBOOT}
+     ;;
+     doshutdown)
+ 	echo "UPS ${2} initiated Shutdown Sequence" | ${WALL}
