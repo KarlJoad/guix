@@ -1,0 +1,11 @@
+--- apcupsd-svn-r2381-tags-Release-3_14_14/platforms/apccontrol.in	2023-09-02 20:31:08.774566706 -0500
++++ apcupsd-svn-r2381-tags-Release-3_14_14/platforms/apccontrol.in	2023-09-02 20:56:02.412430662 -0500
+@@ -108,7 +108,7 @@
+     ;;
+     doshutdown)
+ 	echo "UPS ${2} initiated Shutdown Sequence" | ${WALL}
+-	${SHUTDOWN} -h now "apcupsd UPS ${2} initiated shutdown"
++	${SHUTDOWN}
+     ;;
+     annoyme)
+ 	echo "Power problems with UPS ${2}. Please logoff." | ${WALL}

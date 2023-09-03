@@ -21,6 +21,7 @@
   #:use-module (guix packages)
   #:use-module (guix download)
   #:use-module (guix build-system gnu)
+  #:use-module (gnu packages)
   #:use-module (gnu packages base)
   #:use-module (gnu packages libusb)
   #:use-module (gnu packages pkg-config)
@@ -41,6 +42,10 @@
                            name "-" version ".tar.gz"))
        (sha256
         (base32 "0rwqiyzlg9p0szf3x6q1ppvrw6f6dbpn2rc5z623fk3bkdalhxyv"))
+       (patches
+        (search-patches
+         ;; Need to change doshutdown and doreboot event commands
+         "apcupsd-apccontrol-shutdown.patch")) ; shepherd shutdown has no args
        (modules '((guix build utils)))
        (snippet
         #~(list
