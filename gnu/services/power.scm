@@ -52,8 +52,7 @@
          (provision '(apcupsd))
          ;; Use make-inetd-constructor??
          (start #~(make-forkexec-constructor #$apcupsd-command))
-         (stop #~(make-kill-destructor))
-         (actions (list (shepherd-configuration-action config))))))
+         (stop #~(make-kill-destructor)))))
 
 (define (extend-apcupsd-configuration config extras)
   "Extend CONFIG with the extra EXTRAS."
