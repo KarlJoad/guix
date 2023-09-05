@@ -32,6 +32,27 @@
   #:export (apcupsd-configuration
             apcupsd-service-type))
 
+(define %apcupsd-events
+  ;; List of events from "man apccontrol"
+  '(annoyme ; Reminder pings to users to sign off
+    ;; Battery events
+    battattach battdetach changeme
+    ;; Communication with UPS
+    commfailure commok
+    ;; UPS/apcupsd signalling things to happen
+    doreboot doshutdown emergency failing
+    ;; Shut off UPS. NOTE: killpower must happen & send to UPS before a doshutdown event.
+    ;; Needs grace time.
+    killpower
+    ;; UPS reached max load
+    loadlimit
+    ;; "Normal" UPS operation, in left-to-right order
+    powerout onbattery offbattery mainsback
+    ;; Self tests
+    startselftest endselftest
+    ;; Rest
+    remotedown runlimit timeout))
+
 (define apcupsd-serialize-package serialize-package)
 (define package? file-like?)
 (define apcupsd-package? file-like?)
@@ -46,6 +67,23 @@
 (define (apcupsd-serialize-string field-name value)
   #~(format #f "~a ~a~%" (string-upcase #$field-name) #$value))
 
+(define (alist-symbol-file-like? values)
+  (every (match-lambda
+           ((event . handler)
+            (and (symbol? event)
+                 (or (gexp? handler)
+                     (file-like? handler)
+                     (eq? #f handler)))))
+         values))
+(define (sanitize-alist-symbol-file-like values)
+  ;; Filter out events that do not match what is in %apcupsd-events
+  ;; FIXME: Print out which events are thrown away?
+  (filter (match-lambda
+            ((event . _)
+             (memq event %apcupsd-events)))
+          values))
+(define (apcupsd-serialize-alist-symbol-file-like field-name vals)
+  "")
 (define-configuration apcupsd-configuration
   (package
     (package apcupsd)
@@ -75,6 +113,15 @@
    "The amount of time left in the UPS when the UPS powers off the computer."
    (serializer
     (lambda (_ value) (apcupsd-serialize-integer "MINUTES" value))))
+  ;; We do not serialize this field, despite it having a serializer.
+  (event-handlers
+   (alist-symbol-file-like (map (lambda (event) `(,event . #f)) %apcupsd-events))
+   "Scripts/file-like objects to add to the script directory, which will be
+executed as a handler for the specified event @emph{before} executing the
+default event handler.
+If you want to stop apcupsd's default handler for that event from executing after your
+script, your script must exit with value @t{99}."
+   (sanitizer apcupsd-sanitize-alist-symbol-gexp))
   (prefix apcupsd-))
 
 (define (apcupsd-config-file config)
