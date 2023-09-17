@@ -230,18 +230,28 @@ of CONFIG."
          (stop #~(make-kill-destructor)))))
 
 (define (apcupsd-wrapper config)
-  "Wrap all the binaries in apcupsd to automatically pass the location
-of the config file for the service."
-  (define exp
-    #~(begin
-        ;; NOTE: sbin is the only one with ELF binaries. etc has SH scripts
-        (let ((og-bins #$(file-append (apcupsd-configuration-package config)
-                                      "/sbin/apctest")))
-          (apply execl og-bins og-bins
-                 "-f" #$(apcupsd-config-file config)
-                 (cdr (command-line))))))
+  "Wrap all the binaries in apcupsd to automatically pass the location of the
+config file for the service.
 
-  (program-file "apctest-wrapped" exp))
+If the daemon is running and the user does not provide a host:port combination,
+then the sbin/ binaries grab their information from localhost:3551. This can be
+overridden on the command line or through the config file, which is why we
+wrap."
+  (define (exp bin)
+    ;; NOTE: sbin is the only one with ELF binaries. etc has SH scripts
+    ;; which get called by the apcupsd binary when an event occurs.
+    (program-file
+     (string-append bin "-wrapped")
+     #~(begin
+         (let ((og-bin #$(file-append (apcupsd-configuration-package config)
+                                      "/sbin/"
+                                      bin)))
+           (apply execl og-bin og-bin
+                  "-f" #$(apcupsd-config-file config)
+                  (cdr (command-line)))))))
+
+  (file-union "wrapped-apc-binaries"
+              (map exp '("apctest" "apcaccess"))))
 
 (define (apcupsd-profile-service config)
   ;; XXX: profile-service-type only accepts <package> objects
