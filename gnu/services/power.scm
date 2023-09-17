@@ -24,7 +24,6 @@
   #:use-module (gnu services configuration)
   #:use-module (gnu services shepherd)
   #:use-module (guix packages)
-  #:use-module (guix build-system trivial)
   #:use-module (guix build-system copy)
   #:use-module (guix gexp)
   #:use-module (guix records)
@@ -260,18 +259,11 @@ wrap."
      (name "apcupsd-wrapper")
      (version (package-version apcupsd))
      (source (apcupsd-wrapper config))
-     (build-system trivial-build-system)
+     (build-system copy-build-system)
      (arguments
-      '(#:modules ((guix build utils))
-        #:builder
-        (begin
-          (use-modules (guix build utils))
-          (let* ((source (assoc-ref %build-inputs "source"))
-                 (out (assoc-ref %outputs "out"))
-                 (sbin (string-append out "/sbin")))
-            (mkdir-p sbin)
-            (symlink source (string-append sbin "/apctest"))
-            #t))))
+      (list
+       #:install-plan
+       ''(("./" "sbin/"))))
      (home-page (package-home-page apcupsd))
      (synopsis (package-synopsis apcupsd))
      (description (package-description apcupsd))
