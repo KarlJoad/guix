@@ -25,10 +25,12 @@
   #:use-module (gnu services shepherd)
   #:use-module (guix packages)
   #:use-module (guix build-system trivial)
+  #:use-module (guix build-system copy)
   #:use-module (guix gexp)
   #:use-module (guix records)
   #:use-module (guix modules)
   #:use-module (srfi srfi-1)
+  #:use-module (ice-9 match)
   #:export (apcupsd-configuration
             apcupsd-service-type))
 
@@ -83,7 +85,61 @@
              (memq event %apcupsd-events)))
           values))
 (define (apcupsd-serialize-alist-symbol-file-like field-name vals)
-  "")
+  ;; Serializing this alist means we build the SCRIPTDIR filled with scripts
+  ;; provided by the user which are executed before apcupsd's default handlers.
+  ;; Once the file-union of scripts is built, we copy these and apccontrol to
+  ;; another directory and write that final path to the config file.
+  (define (build-scriptdir event-handler-alist)
+    (file-union "apcupsd-extra-scripts"
+                 (map (match-lambda
+                       ((event . handler)
+                        (let ((script-name (symbol->string event)))
+                          ;; FIXME: For now assume handler is a gexp
+                          (list (string-append "scripts/" script-name)
+                                (program-file (string-append script-name ".scm")
+                                              #~(begin
+                                                  ;; Provide way to call back
+                                                  (setenv "APCCONTROL" "@APCCONTROL@")
+                                                  ;; TODO: Make call back a procedure?
+                                                  #$handler)
+                                              )))))
+                      event-handler-alist)))
+
+  (define apccontrol-with-extra-scripts
+    (package
+      (inherit apcupsd) ; Only for package metadata (homepage, etc.)
+      (name "apccontrol")
+      (source apcupsd)
+      (native-inputs `(("apcupsd-scripts" ,(build-scriptdir vals))))
+      (build-system copy-build-system)
+      (arguments
+       (list
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'install 'substitute-extra-script-dir
+              (lambda* (#:key inputs outputs #:allow-other-keys)
+                (substitute* (string-append (assoc-ref outputs "out") "/apccontrol")
+                  (("SCRIPTDIR=.*")
+                   (string-append "SCRIPTDIR=" (assoc-ref outputs "out") "\n")))))
+            (add-after 'install 'substitute-apccontrol-script-callback
+              (lambda* (#:key inputs outputs #:allow-other-keys)
+                (substitute* (find-files (assoc-ref outputs "out")
+                                         (lambda (file stat) (executable-file? file)))
+                  (("@APCCONTROL@")
+                   (string-append (assoc-ref outputs "out") "/apccontrol"))))))
+        #:install-plan
+        ``(("etc/apccontrol" "/")
+           (,(string-append (assoc-ref %build-inputs "apcupsd-scripts")
+                            "/scripts/") "/"))))))
+
+  ;; NOTE: SCRIPTDIR in apcupsd.conf must point to directory with apccontrol script.
+  ;; The apccontrol script _also_ has SCRIPTDIR, which must point to the extra
+  ;; scripts to run!
+  #~(string-append
+     "# SCRIPTDIR points to directory with apccontrol script.\n"
+     (format #f "SCRIPTDIR ~a~%" #$apccontrol-with-extra-scripts)
+     "# The apccontrol script has another SCRIPTDIR pointing to the extra scripts.\n"))
+
 (define-configuration apcupsd-configuration
   (package
     (package apcupsd)
@@ -113,7 +169,9 @@
    "The amount of time left in the UPS when the UPS powers off the computer."
    (serializer
     (lambda (_ value) (apcupsd-serialize-integer "MINUTES" value))))
-  ;; We do not serialize this field, despite it having a serializer.
+  ;; We do not serialize event-handlers the normal way, despite it having a
+  ;; serializer. Please see the apcupsd-serialize-alist-symbol-file-like
+  ;; procedure above.
   (event-handlers
    (alist-symbol-file-like (map (lambda (event) `(,event . #f)) %apcupsd-events))
    "Scripts/file-like objects to add to the script directory, which will be
