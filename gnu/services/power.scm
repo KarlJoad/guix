@@ -240,15 +240,15 @@ wrap."
   (define (exp bin)
     ;; NOTE: sbin is the only one with ELF binaries. etc has SH scripts
     ;; which get called by the apcupsd binary when an event occurs.
-    (program-file
-     (string-append bin "-wrapped")
-     #~(begin
-         (let ((og-bin #$(file-append (apcupsd-configuration-package config)
-                                      "/sbin/"
-                                      bin)))
-           (apply execl og-bin og-bin
-                  "-f" #$(apcupsd-config-file config)
-                  (cdr (command-line)))))))
+    (list bin
+          (program-file
+           bin
+           #~(begin
+               (let ((real-bin #$(file-append (apcupsd-configuration-package config)
+                                              "/sbin/" bin)))
+                 (apply execl real-bin real-bin
+                        "-f" #$(apcupsd-config-file config)
+                        (cdr (command-line))))))))
 
   (file-union "wrapped-apc-binaries"
               (map exp '("apctest" "apcaccess"))))
