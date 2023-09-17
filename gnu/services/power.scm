@@ -68,22 +68,21 @@
 (define (apcupsd-serialize-string field-name value)
   #~(format #f "~a ~a~%" (string-upcase #$field-name) #$value))
 
-(define (alist-symbol-file-like? values)
+(define (alist-symbol-gexp? values)
   (every (match-lambda
            ((event . handler)
             (and (symbol? event)
                  (or (gexp? handler)
-                     (file-like? handler)
                      (eq? #f handler)))))
          values))
-(define (sanitize-alist-symbol-file-like values)
+(define (sanitize-alist-symbol-gexp values)
   ;; Filter out events that do not match what is in %apcupsd-events
   ;; FIXME: Print out which events are thrown away?
   (filter (match-lambda
             ((event . _)
              (memq event %apcupsd-events)))
           values))
-(define (apcupsd-serialize-alist-symbol-file-like field-name vals)
+(define (apcupsd-serialize-alist-symbol-gexp field-name vals)
   ;; Serializing this alist means we build the SCRIPTDIR filled with scripts
   ;; provided by the user which are executed before apcupsd's default handlers.
   ;; Once the file-union of scripts is built, we copy these and apccontrol to
@@ -169,11 +168,11 @@
    (serializer
     (lambda (_ value) (apcupsd-serialize-integer "MINUTES" value))))
   ;; We do not serialize event-handlers the normal way, despite it having a
-  ;; serializer. Please see the apcupsd-serialize-alist-symbol-file-like
+  ;; serializer. Please see the apcupsd-serialize-alist-symbol-gexp
   ;; procedure above.
   (event-handlers
-   (alist-symbol-file-like (map (lambda (event) `(,event . #f)) %apcupsd-events))
-   "Scripts/file-like objects to add to the script directory, which will be
+   (alist-symbol-gexp (map (lambda (event) `(,event . #f)) %apcupsd-events))
+   "Scripts/gexp objects to add to the script directory, which will be
 executed as a handler for the specified event @emph{before} executing the
 default event handler.
 If you want to stop apcupsd's default handler for that event from executing after your
