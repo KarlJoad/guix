@@ -66,6 +66,7 @@
 ;;; Copyright © 2023 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2023, 2024 Jaeme Sifat <jaeme@runbox.com>
 ;;; Copyright © 2023 Josselin Poiret <dev@jpoiret.xyz>
+;;; Copyright © 2023 Raven Hallsby <karl@hallsby.com>
 ;;; Copyright © 2024 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2024 Ahmad Draidi <a.r.draidi@redscript.org>
 ;;; Copyright © 2024 chris <chris@bumblehead.com>
@@ -2785,6 +2786,94 @@ by default.")
     (description "This module provides a battery level indicator for the
 modeline.  It can be displayed in the modeline with %B.")
     (license (list license:expat license:gpl3+))))
+
+(define-public mahogany
+  (let ((commit "4b6b5f8667d8bfa07b889e9298e995f8eebb20bd")
+        (revision "0"))
+  (package
+    (name "mahogany")
+    (version (git-version "0.0.0" revision commit))
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/stumpwm/mahogany")
+             (commit commit)))
+       (file-name (git-file-name "mahogany" version))
+       (sha256
+        (base32 "11kffkkimfk689r5cc351kxr7dadcj3d8dhm2ffvd5b2lz9jwlqp"))))
+    (build-system asdf-build-system/sbcl)
+    (native-inputs
+     (list sbcl-fiasco
+           sbcl-prove))
+    (inputs
+     (list mahogany-heart
+           sbcl-xkbcommon
+           libxkbcommon
+           sbcl-cl-wayland
+           sbcl-alexandria
+           sbcl-cl-ansi-text
+           sbcl-terminfo
+           sbcl-snakes
+           sbcl-iterate
+           sbcl-cffi ;; Provides cffi-grovel
+           wayland
+           wayland-protocols
+           wlroots))
+    (outputs '("out" "lib"))
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'delete-submodules
+            (lambda* (#:key outputs #:allow-other-keys)
+              (delete-file-recursively "./dependencies")
+              (delete-file-recursively "./heart")))
+          (add-after 'delete-submodules 'fix-paths
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "lisp/bindings/hrt-libs.lisp"
+                (("libheart.so")
+                 (search-input-file inputs
+                                    "/lib/libheart.so"))
+                (("libwlroots.so")
+                 (search-input-file inputs
+                                    "/lib/libwlroots.so")))))
+          (add-after 'create-asdf-configuration 'build-program
+            (lambda* (#:key outputs #:allow-other-keys)
+              (build-program
+               (string-append (assoc-ref outputs "out") "/bin/mahogany")
+               outputs
+               #:entry-program '((mahogany::run-server) 0))))
+          (add-after 'build-program 'create-desktop-file
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out (assoc-ref outputs "out"))
+                     (xsessions (string-append out "/share/xsessions"))
+                     (wayland-sessions (string-append out "/share/wayland-sessions")))
+                (define (desktop-file file)
+                  (format file
+                     "[Desktop Entry]~@
+                      Name=stumpwm~@
+                      Comment=The Mahogany Window Manager~@
+                      Exec=~a/bin/mahogany~@
+                      TryExec=~@*~a/bin/mahogany~@
+                      Icon=~@
+                      Type=Application~%"
+                     out))
+                (mkdir-p xsessions)
+                (call-with-output-file
+                    (string-append xsessions "/mahogany.desktop")
+                  desktop-file)
+                (mkdir-p wayland-sessions)
+                (call-with-output-file
+                    (string-append wayland-sessions "/mahogany.desktop")
+                  desktop-file)))))))
+    (synopsis "Window manager for Wayland written in Common Lisp")
+    (description
+     "Mahogany is a tiling window manager for Wayland modeled after StumpWM.
+While it is not a drop-in replacement for stumpwm, stumpwm users should be
+very comfortable with Mahogany.")
+    (home-page "https://github.com/stumpwm/mahogany")
+    (license license:gpl2+))))
 
 (define-public lemonbar
   (package
