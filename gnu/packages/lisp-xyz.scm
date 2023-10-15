@@ -27462,7 +27462,7 @@ instead of #'FOO.
          (uri (git-reference
                (url "https://github.com/sdilts/cl-xkbcommon")
                (commit commit)))
-         (file-name (git-file-name "cl-xkbcommon" version))
+         (file-name (git-file-name "sbcl-xkbcommon" version))
          (sha256
           (base32 "02zdbkh7yliw9vg8i8wx2xgcpfni0fr4z0w19kkxvaib8xm9rx1q"))))
       (build-system asdf-build-system/sbcl)
@@ -27480,10 +27480,10 @@ instead of #'FOO.
        (list libxkbcommon
              sbcl-cffi))
       (home-page "https://github.com/sdilts/cl-xkbcommon")
-      (synopsis "Common Lisp FFI bindings for xkbcommon")
+      (synopsis "Common Lisp FFI bindings for xkbcommon (libxkbcommon)")
       (description
-       "This package provides Common Lisp FFI bindings for xkbcommon
-(libxkbcommon) using cffi-grovel.")
+       "Common Lisp FFI bindings for xkbcommon (libxkbcommon) using
+cffi-grovel.")
       (license license:expat))))
 
 (define-public cl-xkbcommon
