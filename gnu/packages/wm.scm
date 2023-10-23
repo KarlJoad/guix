@@ -2875,6 +2875,37 @@ very comfortable with Mahogany.")
     (home-page "https://github.com/stumpwm/mahogany")
     (license license:gpl2+))))
 
+(define-public mahogany-heart
+  (package
+    (name "mahogany-heart")
+    (version (package-version mahogany))
+    (source (package-source mahogany))
+    (build-system meson-build-system)
+    (native-inputs
+     (list pkg-config))
+    (inputs
+     (list wlroots
+           libxkbcommon))
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'chdir
+            (lambda _ (chdir "heart")))
+          (add-after 'chdir 'delete-submodules
+            (lambda* (#:key outputs #:allow-other-keys)
+              (delete-file-recursively "./subprojects"))))))
+    (synopsis "An alternative C backend to a Wayland compositor to use with Mahogany")
+    (description
+     "Mahogany-heart's task is to setup the initial state of the
+compositor, render the output, and initially handle new connections to
+the compositor. If needed, the backend will also wrap some wlroots
+functions so that less foreign code needs to be called from the other
+language. is a tiling window manager for Wayland modeled after
+StumpWM.")
+    (home-page (package-home-page mahogany))
+    (license (package-license mahogany))))
+
 (define-public lemonbar
   (package
     (name "lemonbar")
