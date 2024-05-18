@@ -82,6 +82,7 @@
   #:use-module (gnu packages web)
   #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
+  #:use-module (gnu packages webkit)
   #:use-module (gnu packages wxwidgets))
 
 (define-public chmlib
@@ -518,6 +519,59 @@ following formats:
 @item XHTML
 @end enumerate")
     (license license:gpl2+)))
+
+(define-public foliate
+  (package
+    (name "foliate")
+    (version "3.1.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/johnfactotum/foliate")
+             (commit version)
+             (recursive? #t)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "000zkl1pwcaiylyh4cnc8zq3n32fpfh2r2b4nlvfjrhrvxp75b5q"))))
+    (build-system meson-build-system)
+    (arguments
+     `(#:glib-or-gtk? #t
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'wrap 'wrap-libs
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out               (assoc-ref outputs "out"))
+                    (gi-typelib-path   (getenv "GI_TYPELIB_PATH"))
+                    (libmagic-path     (string-append
+                                        (assoc-ref %build-inputs "file")
+                                        "/lib")))
+               (wrap-program (string-append out "/bin/foliate")
+                 `("LD_LIBRARY_PATH" ":" prefix (,libmagic-path))
+                 `("GI_TYPELIB_PATH" ":" prefix (,gi-typelib-path)))))))))
+    (native-inputs
+     (list desktop-file-utils
+           gobject-introspection
+           pkg-config
+           gettext-minimal
+           `(,glib "bin")
+           `(,gtk+ "bin")))
+    (inputs
+     (list gjs
+           gtk
+           libadwaita
+           webkitgtk
+           gtk+
+           glib
+           glib-networking
+           gsettings-desktop-schemas
+           file))
+    (home-page "https://johnfactotum.github.io/foliate")
+    (synopsis "A simple and modern GTK eBook reader")
+    (description "A simple and modern GTK eBook reader")
+    (license (list license:expat
+                   license:bsd-3
+                   license:asl2.0))))
 
 (define-public cozy
   (package
