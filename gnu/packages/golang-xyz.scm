@@ -2043,6 +2043,38 @@ interfaces to back that API.  Packages in the Go ecosystem can depend on it,
 while callers can implement logging with whatever backend is appropriate.")
     (license license:asl2.0)))
 
+(define-public go-github-com-github-cli
+  (package
+    (name "github-cli")
+    (version "2.52.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/cli/cli")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "19maavw95iwviwg314k2z0736n3cnwbsnv0f4yfc0cfys8mp985x"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:import-path "github.com/cli/cli"
+      #:install-source? #f
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'build
+            (lambda* (#:key import-path #:allow-other-keys)
+              (with-directory-excursion (string-append "src/" import-path)
+                (setenv "SOURCE_DATE_EPOCH" "315532800")
+                (invoke "go" "run" "script/build.go" "bin/gh")))))))
+    (native-inputs
+     (list))
+    (home-page "https://cli.github.com/")
+    (synopsis "GitHub CLI brings GitHub to your terminal")
+    (description "")
+    (license license:expat)))
+
 (define-public go-github-com-go-task-slim-sprig
   (let ((commit "afa1e2071829e4db655eb448d6c7c16eb0bc5766")
         (revision "0"))
