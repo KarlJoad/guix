@@ -2043,19 +2043,19 @@ interfaces to back that API.  Packages in the Go ecosystem can depend on it,
 while callers can implement logging with whatever backend is appropriate.")
     (license license:asl2.0)))
 
-(define-public go-github-com-github-cli
+(define-public go-github-com-cli-cli-v2
   (package
-    (name "github-cli")
-    (version "2.52.0")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/cli/cli")
-                    (commit (string-append "v" version))))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "19maavw95iwviwg314k2z0736n3cnwbsnv0f4yfc0cfys8mp985x"))))
+    (name "go-github-com-cli-cli-v2")
+    (version "2.53.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/cli/cli")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "056aqh8mvm834wryk7h7kphmx0f81bxkgkhydp7ni5if4zbwpywy"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -2069,10 +2069,58 @@ while callers can implement logging with whatever backend is appropriate.")
                 (setenv "SOURCE_DATE_EPOCH" "315532800")
                 (invoke "go" "run" "script/build.go" "bin/gh")))))))
     (native-inputs
-     (list))
-    (home-page "https://cli.github.com/")
-    (synopsis "GitHub CLI brings GitHub to your terminal")
-    (description "")
+     (list go-gopkg-in-yaml-v3
+           go-gopkg-in-h2non-gock-v1
+           go-google-golang-org-protobuf
+           go-google-golang-org-grpc
+           go-golang-org-x-text
+           go-golang-org-x-term
+           go-golang-org-x-sync
+           go-golang-org-x-crypto
+           go-github-com-zalando-go-keyring
+           go-github-com-stretchr-testify
+           go-github-com-spf13-pflag
+           go-github-com-spf13-cobra
+           go-github-com-sigstore-sigstore-go
+           go-github-com-sigstore-protobuf-specs
+           go-github-com-shurcool-githubv4
+           go-github-com-rivo-tview
+           go-github-com-opentracing-opentracing-go
+           go-github-com-muhammadmuzzammil1998-jsonc
+           go-github-com-microsoft-dev-tunnels
+           go-github-com-mgutz-ansi
+           go-github-com-mattn-go-isatty
+           go-github-com-mattn-go-colorable
+           go-github-com-kballard-go-shellquote
+           go-github-com-joho-godotenv
+           go-github-com-in-toto-in-toto-golang
+           go-github-com-henvic-httpretty
+           go-github-com-hashicorp-go-version
+           go-github-com-hashicorp-go-multierror
+           go-github-com-gorilla-websocket
+           go-github-com-google-shlex
+           go-github-com-google-go-containerregistry
+           go-github-com-google-go-cmp
+           go-github-com-gdamore-tcell-v2
+           go-github-com-gabriel-vasile-mimetype
+           go-github-com-distribution-reference
+           go-github-com-creack-pty
+           go-github-com-cpuguy83-go-md2man-v2
+           go-github-com-cli-safeexec
+           go-github-com-cli-oauth
+           go-github-com-cli-go-gh-v2
+           go-github-com-charmbracelet-lipgloss
+           go-github-com-charmbracelet-glamour
+           go-github-com-cenkalti-backoff-v4
+           go-github-com-briandowns-spinner
+           go-github-com-makenowjust-heredoc
+           go-github-com-alecaivazis-survey-v2))
+    (home-page "https://github.com/cli/cli")
+    (synopsis "GitHub CLI")
+    (description
+     "@@code{gh} is @code{GitHub} on the command line.  It brings pull requests,
+issues, and other @code{GitHub} concepts to the terminal next to where you are
+already working with @@code{git} and your code.")
     (license license:expat)))
 
 (define-public go-github-com-go-task-slim-sprig
