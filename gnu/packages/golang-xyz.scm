@@ -2045,7 +2045,7 @@ while callers can implement logging with whatever backend is appropriate.")
 
 (define-public go-github-com-cli-cli-v2
   (package
-    (name "go-github-com-cli-cli-v2")
+    (name "github-cli")
     (version "2.53.0")
     (source
      (origin
