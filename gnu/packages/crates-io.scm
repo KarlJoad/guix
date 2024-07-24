@@ -90523,6 +90523,26 @@ arithmetic.")
     (description "Utilities for working with uninitialized arrays.")
     (license (list license:expat license:asl2.0))))
 
+(define-public rust-uname-0.1
+  (package
+    (name "rust-uname")
+    (version "0.1.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "uname" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "1j1xd1rryml4j1hf07kahva9d5ym8m9jz9z20hfdpr1jrbq8jbxp"))))
+    (build-system cargo-build-system)
+    (arguments
+     `(#:cargo-inputs (("rust-libc" ,rust-libc-0.2))))
+    (home-page "https://github.com/icorderi/rust-uname")
+    (synopsis "Name and information about current kernel")
+    (description
+     "This package provides Name and information about current kernel.")
+    (license (list license:expat license:asl2.0))))
+
 (define-public rust-uncased-0.9
   (package
     (name "rust-uncased")
