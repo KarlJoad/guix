@@ -95581,6 +95581,32 @@ to XDG Base Directory specification.")
     (description "This package provides Rust FFI bindings for libxenstore.")
     (license license:gpl3)))
 
+(define-public rust-xenstore-rs-0.6
+  (package
+    (inherit rust-xenstore-rs-0.7)
+    (name "rust-xenstore-rs")
+    (version "0.6.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "xenstore-rs" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "1i8wdif8q2cxbrmcp2jxcqg95a4yfsp1m3j4yldcgad3ksl5l4qs"))))
+    (build-system cargo-build-system)
+    (arguments
+     `(#:cargo-inputs (("rust-futures" ,rust-futures-0.3)
+                       ("rust-libc" ,rust-libc-0.2)
+                       ("rust-libloading" ,rust-libloading-0.8)
+                       ("rust-log" ,rust-log-0.4)
+                       ("rust-tokio" ,rust-tokio-1)
+                       ("rust-xenstore-sys" ,rust-xenstore-sys-0.2))
+       #:cargo-development-inputs (("rust-clap" ,rust-clap-4))))
+    (home-page "https://github.com/Wenzel/xenstore")
+    (synopsis "Rust FFI bindings for libxenstore")
+    (description "This package provides Rust FFI bindings for libxenstore.")
+    (license license:gpl3)))
+
 (define-public rust-xenstore-sys-0.3
   (package
     (name "rust-xenstore-sys")
