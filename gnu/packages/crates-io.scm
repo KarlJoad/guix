@@ -95556,6 +95556,26 @@ to XDG Base Directory specification.")
     (description "The user's home directory as per the XDG Specification.")
     (license license:expat)))
 
+(define-public rust-xenstore-sys-0.3
+  (package
+    (name "rust-xenstore-sys")
+    (version "0.3.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "xenstore-sys" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "02dpapjj251z3b3qm3xlx71jjs0inbq55l2jcjh8g16yvz1a8r58"))))
+    (build-system cargo-build-system)
+    (arguments
+     `(#:cargo-inputs (("rust-bindgen" ,rust-bindgen-0.53)
+                       ("rust-pkg-config" ,rust-pkg-config-0.3))))
+    (home-page "https://github.com/Wenzel/xenstore-sys")
+    (synopsis "Rust FFI bindings for libxenstore")
+    (description "This package provides Rust FFI bindings for libxenstore.")
+    (license license:gpl3)))
+
 (define-public rust-xflags-macros-0.2
   (package
     (name "rust-xflags-macros")
