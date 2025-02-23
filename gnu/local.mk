@@ -243,6 +243,7 @@ GNU_SYSTEM_MODULES =				\
   %D%/packages/data-language.scm		\
   %D%/packages/databases.scm			\
   %D%/packages/datamash.scm			\
+  %D%/packages/datalog.scm			\
   %D%/packages/datastructures.scm		\
   %D%/packages/dav.scm				\
   %D%/packages/dbm.scm				\
