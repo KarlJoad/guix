@@ -284,6 +284,7 @@ thrown."
     ("Sleepycat"                  . license:sleepycat)
     ("TCL"                        . license:tcl/tk)
     ("Unlicense"                  . license:unlicense)
+    ("UPL-1.0"                    . license:upl1.0)
     ("Vim"                        . license:vim)
     ("W3C"                        . license:w3c)
     ("WTFPL"                      . license:wtfpl2)
