@@ -90,21 +90,19 @@
                     ;; Souffle has a "build system" that will run the souffle
                     ;; compiler to produce a C++ program and then run g++ to
                     ;; build the final binary.
-                    ,(list (string-append (assoc-ref inputs "gcc") "/bin")
+                    ,(list (string-append (assoc-ref inputs "gcc-toolchain") "/bin")
                            (string-append (assoc-ref inputs "mcpp") "/bin")
                            (string-append (assoc-ref inputs "python-minimal") "/bin")))
                   `("C_INCLUDE_PATH" ":" prefix
-                    ,(list (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           ;; Need access to things like errno.h
-                           (string-append (assoc-ref inputs "libc") "/include")))
+                    ,(list (string-append #$output "/include")
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/include")
+                           (string-append (assoc-ref inputs "zlib") "/include")))
                   `("CPLUS_INCLUDE_PATH" ":" prefix
                     ;; Souffle needs to know where its own headers are.
                     ,(list (string-append #$output "/include")
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/include/c++")
                            (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           ;; Need access to things like errno.h
-                           (string-append (assoc-ref inputs "libc") "/include")
-                           ;; Also need linux/errno.h
-                           (string-append (assoc-ref inputs "kernel-headers") "/include")))))))))
+                           (string-append (assoc-ref inputs "zlib") "/include")))))))))
       (home-page "https://souffle-lang.github.io")
       (synopsis "A compiler for a variant of Datalog for tool designers crafting
 analyses in Horn clauses")
