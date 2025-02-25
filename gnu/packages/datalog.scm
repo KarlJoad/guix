@@ -42,12 +42,13 @@
          (sha256
           (base32 "0py16ng46v88p8qxz1bdfq9vlwlf18kjl4plcvqjyjbhkzxnrhn5"))))
       (native-inputs
-       (list git-minimal ncurses doxygen))
+       (list git-minimal doxygen))
       (inputs
        (list bison flex libffi
              gcc-toolchain
              graphviz-minimal
              mcpp
+             ncurses
              python-minimal
              sqlite
              swig
@@ -83,8 +84,14 @@
                                      (if parallel-tests?
                                          (number->string (parallel-job-count))
                                          "1")))))
+            ;; Clean up various files and wrap binaries.
+            ;; The compiler wrapper script takes many of its values from an
+            ;; embedded JSON string rather than environment variables, which
+            ;; makes some of our wrapping ineffective.
             (add-after 'install 'wrap-programs
               (lambda* (#:key inputs #:allow-other-keys)
+                ;; Wrap the compiled binaries with PATH, INCLUDE, and LD_LIBRARY
+                ;; paths that point to the libraries we need.
                 (wrap-program (string-append #$output "/bin/souffle")
                   `("PATH" ":" prefix
                     ;; Souffle has a "build system" that will run the souffle
@@ -96,13 +103,70 @@
                   `("C_INCLUDE_PATH" ":" prefix
                     ,(list (string-append #$output "/include")
                            (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           (string-append (assoc-ref inputs "zlib") "/include")))
+                           (string-append (assoc-ref inputs "zlib") "/include")
+                           (string-append (assoc-ref inputs "ncurses") "/include")
+                           (string-append (assoc-ref inputs "sqlite") "/include")
+                           (string-append (assoc-ref inputs "libffi") "/include")
+                           (string-append (assoc-ref inputs "libc") "/lib")
+                           ;; Need an explicit path to <linux/errno.h>?
+                           (string-append (assoc-ref inputs "kernel-headers") "/include")))
                   `("CPLUS_INCLUDE_PATH" ":" prefix
                     ;; Souffle needs to know where its own headers are.
                     ,(list (string-append #$output "/include")
                            (string-append (assoc-ref inputs "gcc-toolchain") "/include/c++")
                            (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           (string-append (assoc-ref inputs "zlib") "/include")))))))))
+                           (string-append (assoc-ref inputs "zlib") "/include")
+                           (string-append (assoc-ref inputs "ncurses") "/include")
+                           (string-append (assoc-ref inputs "sqlite") "/include")
+                           (string-append (assoc-ref inputs "libffi") "/include")
+                           (string-append (assoc-ref inputs "libc") "/lib")
+                           ;; Need an explicit path to <linux/errno.h>?
+                           (string-append (assoc-ref inputs "kernel-headers") "/include")))
+                  `("LD_LIBRARY_PATH" ":" prefix
+                    ,(list (string-append #$output "/lib") ; Technically Souffle has no /lib
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
+                           (string-append (assoc-ref inputs "zlib") "/lib")
+                           (string-append (assoc-ref inputs "ncurses") "/lib")
+                           (string-append (assoc-ref inputs "sqlite") "/lib")
+                           (string-append (assoc-ref inputs "libffi") "/lib")
+                           (string-append (assoc-ref inputs "libc") "/lib"))))
+                ;; And now we must "wrap" souffle's compiler wrapper script's
+                ;; internal JSON config file, so the invoked g++ can find
+                ;; everything it needs.
+                (with-directory-excursion #$output
+                  (let ((includes (list (string-append #$output "/include")
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/include/c++")
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/include")
+                           (string-append (assoc-ref inputs "zlib") "/include")
+                           (string-append (assoc-ref inputs "ncurses") "/include")
+                           (string-append (assoc-ref inputs "sqlite") "/include")
+                           (string-append (assoc-ref inputs "libffi") "/include")
+                           (string-append (assoc-ref inputs "libc") "/lib")
+                           ;; Need an explicit path to <linux/errno.h>?
+                           (string-append (assoc-ref inputs "kernel-headers") "/include")))
+                        (libs (list (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
+                                    (string-append (assoc-ref inputs "zlib") "/lib")
+                                    (string-append (assoc-ref inputs "ncurses") "/lib")
+                                    (string-append (assoc-ref inputs "sqlite") "/lib")
+                                    (string-append (assoc-ref inputs "libffi") "/lib")
+                                    (string-append (assoc-ref inputs "libc") "/lib"))))
+                    (substitute* "bin/souffle-compile.py"
+                      ;; Make C++ includes work, and remove embedded build path
+                      (("(\"includes\"): \"([[[[:alnum:] -_.]+)\"," all option prev-vals)
+                       (string-append option ": \""
+                                      (string-join includes " -I" 'prefix) " "
+                                      "\","))
+                      ;; C++ linking
+                      (("(\"link_options\"): \"([[:alnum:] -_.]+)\"," all option prev-options)
+                       (string-append option ": \""
+                                      ;; TODO: Why is this -B the thing that fixes everything?
+                                      (string-append "-B" (assoc-ref inputs "gcc-toolchain") "/lib")
+                                      (string-join libs " -L" 'prefix) " "
+                                      prev-options
+                                      "\","))
+                      ;; Remove embedded build path
+                      (("(\"source_include_dir\"): \".*\"," all option)
+                       (string-append option ": \"\","))))))))))
       (home-page "https://souffle-lang.github.io")
       (synopsis "A compiler for a variant of Datalog for tool designers crafting
 analyses in Horn clauses")
