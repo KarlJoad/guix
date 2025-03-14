@@ -814,3 +814,17 @@ which will be used as a snippet in origin."
              (("\\(integer_decimal\n") "(integer_decimal)\n")
              (("\\(integer\\)") "")
              (("\"0\")") "\"0\"")))))))
+
+(define-public tree-sitter-ada
+  (let ((version "0.1.0") ; In package.json, but untagged
+        (commit "e8e2515465cc2d7c444498e68bdb9f1d86767f95")
+        (revision "0"))
+    (tree-sitter-grammar
+     "ada" "Ada"
+     "0vwi4yc6hs7k4djkwhk09q19lw1nswjfh3aksh2mzqyi3ni9byx9"
+     (git-version version revision commit)
+     #:repository-url "https://github.com/briot/tree-sitter-ada"
+     #:commit commit
+     ;; cleanup-snippet is required but the files the default snippet deletes
+     ;; are not present upstream. Use a fake snippet to allow things to happen.
+     #:get-cleanup-snippet (lambda _ #t))))
