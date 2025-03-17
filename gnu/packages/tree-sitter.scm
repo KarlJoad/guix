@@ -829,3 +829,18 @@ which will be used as a snippet in origin."
      ;; files this default snippet deletes are not present in the source.
      ;; Use a fake snippet to allow things to happen.
      #:get-cleanup-snippet (lambda _ #t))))
+
+(define-public tree-sitter-gpr
+  (let ((version "0.1.0") ; In package.json, but untagged
+        (commit "cea857d3c18d1385d1f5b66cd09ea1e44173945c")
+        (revision "0"))
+    (tree-sitter-grammar
+     "gpr" "GNAT Project"
+     "0mf6ghqdyn0qbani9hg67yr6a68cbbbvhn734ndygxm30vqdz9xn"
+     (git-version version revision commit)
+     #:repository-url "https://github.com/brownts/tree-sitter-gpr"
+     #:commit commit
+     ;; cleanup-snippet is part of tree-sitter-grammar's snippet field but the
+     ;; files this default snippet deletes are not present in the source.
+     ;; Use a fake snippet to allow things to happen.
+     #:get-cleanup-snippet (lambda _ #t))))
