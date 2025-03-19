@@ -99,9 +99,10 @@
                     ;; Souffle has a "build system" that will run the souffle
                     ;; compiler to produce a C++ program and then run g++ to
                     ;; build the final binary.
-                    ,(list (string-append (assoc-ref inputs "gcc-toolchain") "/bin")
+                    ,(list (string-append (assoc-ref inputs "swig") "/bin")
+                           (string-append (assoc-ref inputs "python-minimal") "/bin")
                            (string-append (assoc-ref inputs "mcpp") "/bin")
-                           (string-append (assoc-ref inputs "python-minimal") "/bin")))
+                           (string-append (assoc-ref inputs "gcc-toolchain") "/bin")))
                   `("C_INCLUDE_PATH" ":" prefix
                     ,(list (string-append #$output "/include")
                            (string-append (assoc-ref inputs "gcc-toolchain") "/include")
