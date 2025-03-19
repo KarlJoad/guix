@@ -42,7 +42,7 @@
          (sha256
           (base32 "0py16ng46v88p8qxz1bdfq9vlwlf18kjl4plcvqjyjbhkzxnrhn5"))))
       (native-inputs
-       (list git-minimal doxygen))
+       (list doxygen))
       (inputs
        (list bison flex libffi
              gcc-toolchain
@@ -60,6 +60,8 @@
        (list
         #:configure-flags
         #~(list
+           ;; Prevent souffle from calling out to git for a version number
+           "-DSOUFFLE_GIT=OFF"
            ;; Use larger representation values.
            "-DSOUFFLE_DOMAIN_64BIT=ON"
            ;; Allow Java/Python/others to use libffi to interop with souffle.
