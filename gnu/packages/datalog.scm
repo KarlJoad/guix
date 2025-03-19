@@ -124,7 +124,10 @@
                            (string-append (assoc-ref inputs "libc") "/lib")
                            ;; Need an explicit path to <linux/errno.h>?
                            (string-append (assoc-ref inputs "kernel-headers") "/include")))
-                  `("LD_LIBRARY_PATH" ":" prefix
+                  ;; Make sure g++ and co. can find necessary files when
+                  ;; compiling the souffle-generated C++ program. In particular,
+                  ;; crt1.o and crti.o need to be found.
+                  `("LIBRARY_PATH" ":" prefix
                     ,(list (string-append #$output "/lib") ; Technically Souffle has no /lib
                            (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
                            (string-append (assoc-ref inputs "zlib") "/lib")
@@ -161,14 +164,22 @@
                       ;; C++ linking
                       (("(\"link_options\"): \"([[:alnum:] -_.]+)\"," all option prev-options)
                        (string-append option ": \""
-                                      ;; TODO: Why is this -B the thing that fixes everything?
-                                      (string-append "-B" (assoc-ref inputs "gcc-toolchain") "/lib")
                                       (string-join libs " -L" 'prefix) " "
                                       prev-options
                                       "\","))
                       ;; Remove embedded build path
                       (("(\"source_include_dir\"): \".*\"," all option)
                        (string-append option ": \"\","))))))))))
+      ;; (native-search-paths
+      ;;  (list (search-path-specification
+      ;;         (variable "C_INCLUDE_PATH")
+      ;;         (files '("include")))
+      ;;        (search-path-specification
+      ;;         (variable "CPLUS_INCLUDE_PATH")
+      ;;         (files '("include")))
+      ;;        (search-path-specification
+      ;;         (variable "LIBRARY_PATH")
+      ;;         (files '("lib")))))
       (home-page "https://souffle-lang.github.io")
       (synopsis "A compiler for a variant of Datalog for tool designers crafting
 analyses in Horn clauses")
