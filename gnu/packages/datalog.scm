@@ -93,8 +93,8 @@
             ;; makes some of our wrapping ineffective.
             (add-after 'install 'wrap-programs
               (lambda* (#:key inputs #:allow-other-keys)
-                ;; Wrap the compiled binaries with PATH, INCLUDE, and LD_LIBRARY
-                ;; paths that point to the libraries we need.
+                ;; Wrap the compiled binaries that point to the libraries
+                ;; souffle needs at runtime.
                 (wrap-program (string-append #$output "/bin/souffle")
                   `("PATH" ":" prefix
                     ;; Souffle has a "build system" that will run the souffle
@@ -129,6 +129,9 @@
                   ;; Make sure g++ and co. can find necessary files when
                   ;; compiling the souffle-generated C++ program. In particular,
                   ;; crt1.o and crti.o need to be found.
+                  ;; The final compiled program has rpaths set to libraries by
+                  ;; the compiler script. So no LD_LIBRARY_PATH changes are
+                  ;; needed.
                   `("LIBRARY_PATH" ":" prefix
                     ,(list (string-append #$output "/lib") ; Technically Souffle has no /lib
                            (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
