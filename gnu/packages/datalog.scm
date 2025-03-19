@@ -73,6 +73,7 @@
            "-DSOUFFLE_TEST_EVALUATION=ON"
            ;; Generate HTML & man documentation.
            "-DSOUFFLE_GENERATE_DOXYGEN=html;man"
+           "-DSOUFFLE_BASH_COMPLETION=on"
            (string-append "-DBASH_COMPLETION_COMPLETIONSDIR=" #$output "/etc/bash_completion.d"))
         #:phases
         #~(modify-phases %standard-phases
