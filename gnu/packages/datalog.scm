@@ -12,6 +12,8 @@
   #:use-module (gnu packages cpp)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages flex)
+  #:use-module (gnu packages fontutils)
+  #:use-module (gnu packages ghostscript)
   #:use-module (gnu packages graphviz)
   #:use-module (gnu packages java)
   #:use-module (gnu packages libffi)
@@ -42,7 +44,8 @@
          (sha256
           (base32 "0py16ng46v88p8qxz1bdfq9vlwlf18kjl4plcvqjyjbhkzxnrhn5"))))
       (native-inputs
-       (list doxygen))
+       ;; Only needed for building documentation
+       (list doxygen fontconfig font-ghostscript graphviz-minimal))
       (inputs
        (list bison flex libffi
              gcc-toolchain
@@ -71,8 +74,8 @@
            "-DSOUFFLE_ENABLE_TESTING=ON"
            "-DSOUFFLE_TEST_EXAMPLES=ON"
            "-DSOUFFLE_TEST_EVALUATION=ON"
-           ;; Generate HTML & man documentation.
-           "-DSOUFFLE_GENERATE_DOXYGEN=html;man"
+           ;; Enable documentation target
+           "-DSOUFFLE_GENERATE_DOXYGEN=man"
            ;; Generate Bash completions
            "-DSOUFFLE_BASH_COMPLETION=on"
            (string-append "-DBASH_COMPLETION_COMPLETIONSDIR=" #$output "/etc/bash_completion.d"))
@@ -88,6 +91,25 @@
                                      (if parallel-tests?
                                          (number->string (parallel-job-count))
                                          "1")))))
+            (add-after 'check 'build-docs
+              (lambda* (#:key inputs #:allow-other-keys)
+                ;; Already in build/ directory
+                ;; Set a cache directory for fontconfig
+                (setenv "XDG_CACHE_HOME" (mkdtemp "/tmp/cache-XXXXXX"))
+                (invoke "make" "doxygen")))
+            (add-after 'install 'install-docs
+              (lambda* (#:key outputs #:allow-other-keys)
+                (let ((out (assoc-ref outputs "out")))
+                  ;; Still currently in build/
+                  (format #t "~a~%" (getcwd))
+                  (with-directory-excursion "../source"
+                    (format #t "excursion: ~a~%" (getcwd))
+                    (mkdir-p (string-append out "/share/man/man1/"))
+                    (copy-recursively "man/"
+                                     (string-append out "/share/man/man1/"))
+                    (mkdir-p (string-append out "/share/man/man3/"))
+                    (install-file "doc/man/man3/souffle.3"
+                                      (string-append out "/share/man/man3/"))))))
             ;; Clean up various files and wrap binaries.
             ;; The compiler wrapper script takes many of its values from an
             ;; embedded JSON string rather than environment variables, which
