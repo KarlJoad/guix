@@ -185,12 +185,11 @@
                                     (string-append (assoc-ref inputs "libffi") "/lib")
                                     (string-append (assoc-ref inputs "libc") "/lib"))))
                     (substitute* "bin/souffle-compile.py"
-                      ;; Make C++ includes work, and remove embedded build path
+                      ;; Make C++ includes & linking work and remove embedded build path
                       (("(\"includes\"): \"([[[[:alnum:] -_.]+)\"," all option prev-vals)
                        (string-append option ": \""
                                       (string-join includes " -I" 'prefix) " "
                                       "\","))
-                      ;; C++ linking
                       (("(\"link_options\"): \"([[:alnum:] -_.]+)\"," all option prev-options)
                        (string-append option ": \""
                                       (string-join libs " -L" 'prefix) " "
