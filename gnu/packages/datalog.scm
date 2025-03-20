@@ -55,8 +55,7 @@
              python-minimal
              sqlite
              swig
-             ;; I'm not sure which output of openjdk is needed.
-             openjdk `(,openjdk "jdk")
+             `(,openjdk "jdk")
              zlib))
       (build-system cmake-build-system)
       (arguments
