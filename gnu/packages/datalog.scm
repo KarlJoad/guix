@@ -6,6 +6,7 @@
   #:use-module (guix packages)
   #:use-module (guix build-system cmake)
   #:use-module (guix utils)
+  #:use-module (gnu packages bash)
   #:use-module (gnu packages bison)
   #:use-module (gnu packages commencement)
   #:use-module (gnu packages compression)
@@ -44,15 +45,16 @@
          (sha256
           (base32 "0py16ng46v88p8qxz1bdfq9vlwlf18kjl4plcvqjyjbhkzxnrhn5"))))
       (native-inputs
-       ;; Only needed for building documentation
-       (list doxygen fontconfig font-ghostscript graphviz-minimal))
+       (list bison flex
+             ;; Only needed for building documentation
+             doxygen fontconfig font-ghostscript graphviz-minimal))
       (inputs
-       (list bison flex libffi
-             gcc-toolchain
-             graphviz-minimal
+       (list gcc-toolchain
              mcpp
-             ncurses
              python-minimal
+             bash-minimal
+             libffi
+             ncurses
              sqlite
              swig
              `(,openjdk "jdk")
@@ -208,12 +210,12 @@
       ;;         (variable "LIBRARY_PATH")
       ;;         (files '("lib")))))
       (home-page "https://souffle-lang.github.io")
-      (synopsis "A compiler for a variant of Datalog for tool designers crafting
-analyses in Horn clauses")
+      (synopsis "Compiler for a variant of Datalog using Horn clauses")
       (description
-       "Souffle is a logic programming language inspired by Datalog.  It
-overcomes some of the limitations in classical Datalog.  For example,
-programmers are not restricted to finite domains, and the usage of functors
-(intrinsic, user-defined, records/constructors, etc.) is permitted.  Souffle
-has a component model so that large logic projects can be expressed.")
+       "Souffle is a logic programming language inspired by Datalog by
+crafting analyses in Horn clauses.  It overcomes some of the limitations in
+classical Datalog.  For example, programmers are not restricted to finite
+domains, and the usage of functors (intrinsic, user-defined,
+records/constructors, etc.) is permitted.  Souffle has a component model so
+that large logic projects can be expressed.")
       (license license:upl1.0))))
