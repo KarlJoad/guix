@@ -554,3 +554,79 @@ sure that the childhurd boots and runs its SSH server.")
    (description
     "Offload to a virtual build machine over SSH.")
    (value (run-build-vm-test))))
+
+
+;;;
+;;; Xen Guest Agent/Utilities.
+;;;
+;;; Guix system tests use QEMU virtual machine to build up and tear down
+;;; ephemeral systems. When QEMU is running under a host with KVM support,
+;;; QEMU and KVM can play together to emulate a Xen host, making the guest VM
+;;; believe it is actually a Xen guest.
+;;; <https://www.qemu.org/docs/master/system/i386/xen.html>
+;;;
+;;; We rely on this feature because Linux includes kernel modules (which are
+;;; also in linux-libre) for paravirtualizing itself under Xen. This means that
+;;; the guest Linux exposes several file-like devices that are backed by
+;;; XenStore, shared memory via grant tables, and doorbells via "interdomain"
+;;; event channels. The guest utilities/agent send and receive information
+;;; through/from these devices to interact with the hypervisor. If Linux were
+;;; run under QEMU without these Xen flags, Linux would not populated these
+;;; devices, and the guest utilities/agent would fail.
+;;;
+
+(define (run-xe-guest-utilities-test)
+  "Run tests for xe-guest-utilities in a VM running under a QEMU emulating a
+Xen vCPU."
+  (define os
+    (marionette-operating-system
+     (simple-operating-system
+      (service xe-guest-utilities-service-type))
+     #:imported-modules '((gnu services herd)
+                          (guix combinators))))
+
+  (define vm
+    (virtual-machine
+     (operating-system os)
+     (port-forwardings '())))
+
+  (define test
+    (with-imported-modules '((gnu build marionette))
+      #~(begin
+          ;; Verify that I need these modules. srfi-64 is DEFINITELY needed,
+          ;; since it is the unit test one.
+          (use-modules (srfi srfi-11) (srfi srfi-64)
+                       (gnu build marionette))
+          (define marionette
+            (make-marionette
+             ;; Arguments can be provided as the non-car element of the list to
+             ;; make-marionette, and they get appended onto the QEMU command
+             ;; itself.
+             (list #$vm "--accel" "kvm,xen-version=0x40011,kernel-irqchip=split")))
+
+          (test-runner-current (system-test-runner #$output))
+          (test-begin "xe-guest-utilities")
+
+          (test-assert "service running"
+            (marionette-eval
+             '(begin
+                (use-modules (gnu services herd))
+                (match (start-service 'xe-guest-utilities)
+                  (#f #f)
+                  (('service response-parts ...)
+                   (match (assq-ref response-parts 'running)
+                     ((pid) pid)))))
+             marionette))
+
+          (test-end))))
+
+  (gexp->derivation "xe-guest-utilities-test" test))
+
+(define %test-build-vm
+  (system-test
+   (name "build-vm")
+   (description
+    "Offload to a virtual build machine over SSH.")
+   (value (run-xe-guest-utilities-test))))
+
+;; TODO: xen-guest-agent system tests
