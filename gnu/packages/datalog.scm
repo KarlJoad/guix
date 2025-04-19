@@ -143,29 +143,29 @@
                     ;; Souffle has a "build system" that will run the souffle
                     ;; compiler to produce a C++ program and then run g++ to
                     ;; build the final binary.
-                    ,(list (string-append (assoc-ref inputs "swig") "/bin")
-                           (string-append (assoc-ref inputs "python-minimal")
+                    ,(list (string-append #$(this-package-input "swig") "/bin")
+                           (string-append #$(this-package-input "python-minimal")
                                           "/bin")
-                           (string-append (assoc-ref inputs "mcpp") "/bin")
-                           (string-append (assoc-ref inputs "gcc-toolchain")
+                           (string-append #$(this-package-input "mcpp") "/bin")
+                           (string-append #$(this-package-input "gcc-toolchain")
                                           "/bin")))
                   `("C_INCLUDE_PATH" ":" prefix
                     ,(list (string-append #$output "/include")
-                           (string-append (assoc-ref inputs "gcc-toolchain")
+                           (string-append #$(this-package-input "gcc-toolchain")
                                           "/include")
-                           (string-append (assoc-ref inputs "zlib") "/include")
-                           (string-append (assoc-ref inputs "ncurses") "/include")
-                           (string-append (assoc-ref inputs "sqlite") "/include")
-                           (string-append (assoc-ref inputs "libffi") "/include")))
+                           (string-append #$(this-package-input "zlib") "/include")
+                           (string-append #$(this-package-input "ncurses") "/include")
+                           (string-append #$(this-package-input "sqlite") "/include")
+                           (string-append #$(this-package-input "libffi") "/include")))
                   `("CPLUS_INCLUDE_PATH" ":" prefix
                     ;; Souffle needs to know where its own headers are.
                     ,(list (string-append #$output "/include")
-                           (string-append (assoc-ref inputs "gcc-toolchain") "/include/c++")
-                           (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           (string-append (assoc-ref inputs "zlib") "/include")
-                           (string-append (assoc-ref inputs "ncurses") "/include")
-                           (string-append (assoc-ref inputs "sqlite") "/include")
-                           (string-append (assoc-ref inputs "libffi") "/include")))
+                           (string-append #$(this-package-input "gcc-toolchain") "/include/c++")
+                           (string-append #$(this-package-input "gcc-toolchain") "/include")
+                           (string-append #$(this-package-input "zlib") "/include")
+                           (string-append #$(this-package-input "ncurses") "/include")
+                           (string-append #$(this-package-input "sqlite") "/include")
+                           (string-append #$(this-package-input "libffi") "/include")))
                   ;; Make sure g++ and co. can find necessary files when
                   ;; compiling the souffle-generated C++ program. In particular,
                   ;; crt1.o and crti.o need to be found.
@@ -174,31 +174,35 @@
                   ;; needed.
                   `("LIBRARY_PATH" ":" prefix
                     ,(list (string-append #$output "/lib") ; Technically Souffle has no /lib
-                           (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
-                           (string-append (assoc-ref inputs "zlib") "/lib")
-                           (string-append (assoc-ref inputs "ncurses") "/lib")
-                           (string-append (assoc-ref inputs "sqlite") "/lib")
-                           (string-append (assoc-ref inputs "libffi") "/lib"))))
+                           (string-append #$(this-package-input "gcc-toolchain") "/lib")
+                           (string-append #$(this-package-input "zlib") "/lib")
+                           (string-append #$(this-package-input "ncurses") "/lib")
+                           (string-append #$(this-package-input "sqlite") "/lib")
+                           (string-append #$(this-package-input "libffi") "/lib"))))
                 ;; And now we must "wrap" souffle's compiler wrapper script's
                 ;; internal JSON config file, so the invoked g++ can find
                 ;; everything it needs.
                 (with-directory-excursion #$output
-                  (let ((includes (list (string-append #$output "/include")
-                           (string-append (assoc-ref inputs "gcc-toolchain") "/include/c++")
-                           (string-append (assoc-ref inputs "gcc-toolchain") "/include")
-                           (string-append (assoc-ref inputs "zlib") "/include")
-                           (string-append (assoc-ref inputs "ncurses") "/include")
-                           (string-append (assoc-ref inputs "sqlite") "/include")
-                           (string-append (assoc-ref inputs "libffi") "/include")
-                           (string-append (assoc-ref inputs "libc") "/lib")
-                           ;; Need an explicit path to <linux/errno.h>?
-                           (string-append (assoc-ref inputs "kernel-headers") "/include")))
-                        (libs (list (string-append (assoc-ref inputs "gcc-toolchain") "/lib")
-                                    (string-append (assoc-ref inputs "zlib") "/lib")
-                                    (string-append (assoc-ref inputs "ncurses") "/lib")
-                                    (string-append (assoc-ref inputs "sqlite") "/lib")
-                                    (string-append (assoc-ref inputs "libffi") "/lib")
-                                    (string-append (assoc-ref inputs "libc") "/lib"))))
+                  (let ((includes
+                         (list
+                          (string-append #$output "/include")
+                          (string-append #$(this-package-input "gcc-toolchain") "/include/c++")
+                          (string-append #$(this-package-input "gcc-toolchain") "/include")
+                          (string-append #$(this-package-input "zlib") "/include")
+                          (string-append #$(this-package-input "ncurses") "/include")
+                          (string-append #$(this-package-input "sqlite") "/include")
+                          (string-append #$(this-package-input "libffi") "/include")
+                          (string-append (assoc-ref inputs "libc") "/lib")
+                          ;; Need an explicit path to <linux/errno.h>?
+                          (string-append (assoc-ref inputs "kernel-headers") "/include")))
+                        (libs
+                         (list
+                          (string-append #$(this-package-input "gcc-toolchain") "/lib")
+                          (string-append #$(this-package-input "zlib") "/lib")
+                          (string-append #$(this-package-input "ncurses") "/lib")
+                          (string-append #$(this-package-input "sqlite") "/lib")
+                          (string-append #$(this-package-input "libffi") "/lib")
+                          (string-append (assoc-ref inputs "libc") "/lib"))))
                     (substitute* "bin/souffle-compile.py"
                       ;; Make C++ includes & linking work and remove embedded build path
                       (("(\"includes\"): \"([[[[:alnum:] -_.]+)\"," all option prev-vals)
