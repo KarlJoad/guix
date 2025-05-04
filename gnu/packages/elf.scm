@@ -13,6 +13,7 @@
 ;;; Copyright © 2022 Daniel Maksymow <daniel.maksymow@tuta.io>
 ;;; Copyright © 2023, 2024 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2025, Raven Hallsby <karl@hallsby.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -36,16 +37,25 @@
   #:use-module (guix download)
   #:use-module (guix git-download)
   #:use-module (guix build-system gnu)
-  #:use-module ((guix licenses) #:select (gpl2+ gpl3+ lgpl3+ lgpl2.0+ lgpl2.1 gpl2 bsd-2))
+  #:use-module (guix build-system pyproject)
+  #:use-module ((guix licenses) #:select (gpl2+ gpl3+ lgpl3+ lgpl2.0+ lgpl2.1 gpl2 bsd-2 expat))
   #:use-module (gnu packages)
   #:use-module (gnu packages autotools)
+  #:use-module (gnu packages bash)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages check)
+  #:use-module (gnu packages databases)
   #:use-module (gnu packages documentation)
+  #:use-module (gnu packages engineering)
   #:use-module (gnu packages gcc)
   #:use-module (gnu packages m4)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
+  #:use-module (gnu packages python-check)
+  #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages sphinx)
+  #:use-module (gnu packages sqlite)
   #:use-module (gnu packages texinfo)
   #:use-module (gnu packages xml)
   #:use-module (srfi srfi-1)
@@ -424,3 +434,67 @@ changed.")
 debugging information format.")
     ;; See https://www.prevanders.net/dwarflicense.html:
     (license (list lgpl2.1 gpl2 bsd-2))))
+
+(define-public sqlelf
+  ;; Some fixes since last tagged release
+  (let ((commit "a87e97c17550a0415a961fde0164352f171e7f52")
+        (revision "0"))
+    (package
+      (name "sqlelf")
+      (version (git-version "0.5" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/fzakaria/sqlelf")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32
+           "0f5d1dgnphqigy03lw6wjrgmij77y146whglxbixqm67wm7w8a43"))
+         (modules '((guix build utils)))
+         (snippet
+          #~(begin
+              ;; Remove vendored version of elftools
+              (delete-file-recursively "sqlelf/_vendor")
+              (substitute* "sqlelf/elf.py"
+                (("sqlelf\\._vendor\\.elftools") "elftools"))
+              ;; Fix slighly incorrect pyproject.toml so that setuptools
+              ;; installs a source submodule into the wheel.
+              (substitute* "pyproject.toml"
+                (("packages = \\[\\\"sqlelf\\\"\\]")
+                  "packages = [\"sqlelf\", \"sqlelf.tools\"]"))))))
+      (build-system pyproject-build-system)
+      (arguments
+       '(#:tests? #t
+         #:phases
+         (modify-phases %standard-phases
+           (add-before 'check 'set-test-bins
+             (lambda* (#:key inputs #:allow-other-keys)
+               (let ((ls (string-append (assoc-ref inputs "coreutils") "/bin/ls"))
+                     (sh (string-append (assoc-ref inputs "bash") "/bin/sh")))
+                 ;; Replace hard-coded /bin/sh with one from the Store.
+                 (format #t "Replace /bin/sh with ~a~%" sh)
+                 (substitute* "tests/test_cli.py"
+                   (("/bin/sh") sh))
+                 ;; Tell check phase where to find 'ls' in the store for tests.
+                 (format #t "Set $TEST_BINARY to ~a~%" ls)
+                 (setenv "TEST_BINARY" ls)))))))
+      (native-inputs
+       (list python-apsw
+             bash-minimal ; Needed for /bin/sh replacement in tests
+             capstone
+             python-capstone
+             python-lief ; MUST use python-lief 0.14.1
+             python-pyelftools
+             python-pytest
+             python-setuptools
+             python-sh
+             python-wheel))
+      (inputs
+       (list sqlite))
+      (home-page "https://github.com/fzakaria/sqlelf")
+      (synopsis "Explore ELF objects through the power of SQL")
+      (description
+       "A tool that utilizes SQLite's virtual table functionality to allow you to explore Linux ELF objects through SQL.")
+      (license expat))))
