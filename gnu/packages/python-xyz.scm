@@ -4099,25 +4099,21 @@ Unicode-to-LaTeX conversion.")
 (define-public python-sh
   (package
     (name "python-sh")
-    (version "1.14.2")
+    (version "2.0.6")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "sh" version))
        (sha256
         (base32
-         "03gyss1rhj4in7pgysg4q0hxp3230whinlpy1532ljs99lrx0ywx"))))
-    (build-system python-build-system)
+         "18bvpw02lzhlpsaqaf0kxybp0jb72c5iy1n0w9vwf0gj2grrhacv"))))
+    (build-system pyproject-build-system)
     (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda _
-             ;; XXX: A Python 2 test fails when HOME=/homeless-shelter.
-             (setenv "HOME" "/tmp")
-             (invoke "python" "sh.py" "test"))))))
+     ;; Tests rely on python-tox, which introduces a cyclic dependency problem
+     ;; here.
+     '(#:tests? #f))
     (native-inputs
-     (list python-coverage))
+     (list python-coverage python-poetry-core))
     (home-page "https://github.com/amoffat/sh")
     (synopsis "Python subprocess replacement")
     (description "This package provides a replacement for Python's
