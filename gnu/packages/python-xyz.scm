@@ -39496,7 +39496,7 @@ platform using the ActivityPub protocol.")
 (define-public python-lief
   (package
     (name "python-lief")
-    (version "0.12.3")
+    (version "0.14.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -39505,19 +39505,54 @@ platform using the ActivityPub protocol.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "11i6hqmcjh56y554kqhl61698n9v66j2qk1c1g63mv2w07h2z661"))))
-    (build-system python-build-system)
-    (native-inputs (list cmake))
+                "0v8kqylm1f3cv750jjjla7qlpsw6jz1fc9qax0jqbpfjvym8xf3f"))))
+    (build-system cmake-build-system)
     (arguments
      (list
-      #:tests? #f                  ;needs network
-      #:phases #~(modify-phases %standard-phases
-                   (replace 'build
-                     (lambda _
-                       (invoke
-                        "python" "setup.py" "--sdk" "build"
-                        (string-append
-                         "-j" (number->string (parallel-job-count)))))))))
+      #:imported-modules `(,@%cmake-build-system-modules
+                           ,@%pyproject-build-system-modules)
+      #:modules '((guix build cmake-build-system)
+                  ((guix build pyproject-build-system) #:prefix py:)
+                  (guix build utils))
+      ;; All tests are written in Python and use Python's testing infra rather
+      ;; than a combination of CMake and Python. Must be done AFTER lief is
+      ;; installed to PYTHONPATH.
+      ;; Lief requires test inputs to be downloaded as a separate tarball from
+      ;; S3, which cannot have fixed-output derivations that track Lief's source.
+      #:tests? #f
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'configure 'set-env-vars
+            (lambda _
+              (setenv "LIEF_VERSION_ENV" #$(package-version this-package))))
+          (add-after 'build 'build-python-module
+            ;; (assoc-ref py:%standard-phases 'build))
+            (lambda _
+              (with-directory-excursion "../source/api/python"
+                ((assoc-ref py:%standard-phases 'build)))))
+          ;; Remove cmake-build-system's check phase so we can replace it with
+          ;; one that works with Python later.
+          (delete 'check)
+          (add-after 'install 'install-python-module
+            (lambda* (#:key inputs outputs (configure-flags '()) use-setuptools?
+                      #:allow-other-keys)
+              (with-directory-excursion "../source/api/python"
+                (format #t "Python is at: ~a~%" (assoc-ref inputs "python"))
+                ((assoc-ref py:%standard-phases 'install)
+                 #:inputs inputs
+                 #:outputs outputs
+                 #:configure-flags configure-flags
+                 #:use-setuptools? use-setuptools?))))
+          (add-after 'install-python-module 'add-install-to-pythonpath
+            (assoc-ref py:%standard-phases 'add-install-to-pythonpath)))))
+    (native-inputs
+     (list ninja python-pytest))
+    (inputs
+     (list python-scikit-build-core
+           python-pathspec
+           python-pip
+           python-pydantic-2 python-pydantic-core
+           python-wrapper))
     (home-page "https://github.com/lief-project/LIEF")
     (synopsis "Library to instrument executable formats")
     (description
