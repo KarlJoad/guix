@@ -62,21 +62,23 @@
          (file-name (git-file-name name version))
          (sha256
           (base32 "0k27cf1h6bl6rwkk4zkwpsfk2n4814fda2v7mcin0r9wkx1pdrxi"))))
-      (native-inputs
-       (list bison flex
-             ;; Only needed for building documentation
-             doxygen fontconfig font-ghostscript graphviz-minimal))
-      (inputs
-       (list gcc-toolchain
-             mcpp
-             python-minimal
-             bash-minimal
-             libffi
-             ncurses
-             sqlite
-             swig
-             `(,openjdk "jdk")
-             zlib))
+      (native-inputs (list bison
+                           flex
+                           ;; Only needed for building documentation
+                           doxygen
+                           fontconfig
+                           font-ghostscript
+                           graphviz-minimal))
+      (inputs (list gcc-toolchain
+                    mcpp
+                    python-minimal
+                    bash-minimal
+                    libffi
+                    ncurses
+                    sqlite
+                    swig
+                    `(,openjdk "jdk")
+                    zlib))
       (build-system cmake-build-system)
       (arguments
        (list
@@ -107,15 +109,16 @@
             (replace 'check
               (lambda* (#:key tests? parallel-tests? #:allow-other-keys)
                 (setenv "CTEST_OUTPUT_ON_FAILURE" "1")
-                (when tests? (invoke "ctest" "--output-on-failure" "-j"
-                                     (if parallel-tests?
-                                         (number->string (parallel-job-count))
-                                         "1")))))
+                (when tests?
+                  (invoke "ctest" "--output-on-failure" "-j"
+                          (if parallel-tests?
+                              (number->string (parallel-job-count)) "1")))))
             (add-after 'check 'build-docs
               (lambda* (#:key inputs #:allow-other-keys)
                 ;; Already in build/ directory
                 ;; Set a cache directory for fontconfig
-                (setenv "XDG_CACHE_HOME" (mkdtemp "/tmp/cache-XXXXXX"))
+                (setenv "XDG_CACHE_HOME"
+                        (mkdtemp "/tmp/cache-XXXXXX"))
                 (invoke "make" "doxygen")))
             (add-after 'install 'install-docs
               (lambda* (#:key outputs #:allow-other-keys)
@@ -126,10 +129,10 @@
                     (format #t "excursion: ~a~%" (getcwd))
                     (mkdir-p (string-append out "/share/man/man1/"))
                     (copy-recursively "man/"
-                                     (string-append out "/share/man/man1/"))
+                                      (string-append out "/share/man/man1/"))
                     (mkdir-p (string-append out "/share/man/man3/"))
                     (install-file "doc/man/man3/souffle.3"
-                                      (string-append out "/share/man/man3/"))))))
+                                  (string-append out "/share/man/man3/"))))))
             ;; Clean up various files and wrap binaries.
             ;; The compiler wrapper script takes many of its values from an
             ;; embedded JSON string rather than environment variables, which
@@ -139,33 +142,44 @@
                 ;; Wrap the compiled binaries that point to the libraries
                 ;; souffle needs at runtime.
                 (wrap-program (string-append #$output "/bin/souffle")
-                  `("PATH" ":" prefix
+                  `("PATH" ":"
+                    prefix
                     ;; Souffle has a "build system" that will run the souffle
                     ;; compiler to produce a C++ program and then run g++ to
                     ;; build the final binary.
                     ,(list (string-append #$(this-package-input "swig") "/bin")
-                           (string-append #$(this-package-input "python-minimal")
-                                          "/bin")
+                           (string-append #$(this-package-input
+                                             "python-minimal") "/bin")
                            (string-append #$(this-package-input "mcpp") "/bin")
-                           (string-append #$(this-package-input "gcc-toolchain")
-                                          "/bin")))
+                           (string-append #$(this-package-input
+                                             "gcc-toolchain") "/bin")))
                   `("C_INCLUDE_PATH" ":" prefix
                     ,(list (string-append #$output "/include")
-                           (string-append #$(this-package-input "gcc-toolchain")
+                           (string-append #$(this-package-input
+                                             "gcc-toolchain") "/include")
+                           (string-append #$(this-package-input "zlib")
                                           "/include")
-                           (string-append #$(this-package-input "zlib") "/include")
-                           (string-append #$(this-package-input "ncurses") "/include")
-                           (string-append #$(this-package-input "sqlite") "/include")
-                           (string-append #$(this-package-input "libffi") "/include")))
+                           (string-append #$(this-package-input "ncurses")
+                                          "/include")
+                           (string-append #$(this-package-input "sqlite")
+                                          "/include")
+                           (string-append #$(this-package-input "libffi")
+                                          "/include")))
                   `("CPLUS_INCLUDE_PATH" ":" prefix
                     ;; Souffle needs to know where its own headers are.
                     ,(list (string-append #$output "/include")
-                           (string-append #$(this-package-input "gcc-toolchain") "/include/c++")
-                           (string-append #$(this-package-input "gcc-toolchain") "/include")
-                           (string-append #$(this-package-input "zlib") "/include")
-                           (string-append #$(this-package-input "ncurses") "/include")
-                           (string-append #$(this-package-input "sqlite") "/include")
-                           (string-append #$(this-package-input "libffi") "/include")))
+                           (string-append #$(this-package-input
+                                             "gcc-toolchain") "/include/c++")
+                           (string-append #$(this-package-input
+                                             "gcc-toolchain") "/include")
+                           (string-append #$(this-package-input "zlib")
+                                          "/include")
+                           (string-append #$(this-package-input "ncurses")
+                                          "/include")
+                           (string-append #$(this-package-input "sqlite")
+                                          "/include")
+                           (string-append #$(this-package-input "libffi")
+                                          "/include")))
                   ;; Make sure g++ and co. can find necessary files when
                   ;; compiling the souffle-generated C++ program. In particular,
                   ;; crt1.o and crti.o need to be found.
@@ -173,45 +187,69 @@
                   ;; the compiler script. So no LD_LIBRARY_PATH changes are
                   ;; needed.
                   `("LIBRARY_PATH" ":" prefix
-                    ,(list (string-append #$output "/lib") ; Technically Souffle has no /lib
-                           (string-append #$(this-package-input "gcc-toolchain") "/lib")
+                    ,(list (string-append #$output "/lib") ;Technically Souffle has no /lib
+                           (string-append #$(this-package-input
+                                             "gcc-toolchain") "/lib")
                            (string-append #$(this-package-input "zlib") "/lib")
-                           (string-append #$(this-package-input "ncurses") "/lib")
-                           (string-append #$(this-package-input "sqlite") "/lib")
-                           (string-append #$(this-package-input "libffi") "/lib"))))
+                           (string-append #$(this-package-input "ncurses")
+                                          "/lib")
+                           (string-append #$(this-package-input "sqlite")
+                                          "/lib")
+                           (string-append #$(this-package-input "libffi")
+                                          "/lib"))))
                 ;; And now we must "wrap" souffle's compiler wrapper script's
                 ;; internal JSON config file, so the invoked g++ can find
                 ;; everything it needs.
                 (with-directory-excursion #$output
-                  (let ((includes
-                         (list
-                          (string-append #$output "/include")
-                          (string-append #$(this-package-input "gcc-toolchain") "/include/c++")
-                          (string-append #$(this-package-input "gcc-toolchain") "/include")
-                          (string-append #$(this-package-input "zlib") "/include")
-                          (string-append #$(this-package-input "ncurses") "/include")
-                          (string-append #$(this-package-input "sqlite") "/include")
-                          (string-append #$(this-package-input "libffi") "/include")
-                          (string-append (assoc-ref inputs "libc") "/lib")
-                          ;; Need an explicit path to <linux/errno.h>?
-                          (string-append (assoc-ref inputs "kernel-headers") "/include")))
-                        (libs
-                         (list
-                          (string-append #$(this-package-input "gcc-toolchain") "/lib")
-                          (string-append #$(this-package-input "zlib") "/lib")
-                          (string-append #$(this-package-input "ncurses") "/lib")
-                          (string-append #$(this-package-input "sqlite") "/lib")
-                          (string-append #$(this-package-input "libffi") "/lib")
-                          (string-append (assoc-ref inputs "libc") "/lib"))))
+                  (let ((includes (list (string-append #$output "/include")
+                                        (string-append #$(this-package-input
+                                                          "gcc-toolchain")
+                                                       "/include/c++")
+                                        (string-append #$(this-package-input
+                                                          "gcc-toolchain")
+                                                       "/include")
+                                        (string-append #$(this-package-input
+                                                          "zlib") "/include")
+                                        (string-append #$(this-package-input
+                                                          "ncurses")
+                                                       "/include")
+                                        (string-append #$(this-package-input
+                                                          "sqlite") "/include")
+                                        (string-append #$(this-package-input
+                                                          "libffi") "/include")
+                                        (string-append (assoc-ref inputs
+                                                                  "libc")
+                                                       "/lib")
+                                        ;; Need an explicit path to <linux/errno.h>?
+                                        (string-append (assoc-ref inputs
+                                                        "kernel-headers")
+                                                       "/include")))
+                        (libs (list (string-append #$(this-package-input
+                                                      "gcc-toolchain") "/lib")
+                                    (string-append #$(this-package-input
+                                                      "zlib") "/lib")
+                                    (string-append #$(this-package-input
+                                                      "ncurses") "/lib")
+                                    (string-append #$(this-package-input
+                                                      "sqlite") "/lib")
+                                    (string-append #$(this-package-input
+                                                      "libffi") "/lib")
+                                    (string-append (assoc-ref inputs "libc")
+                                                   "/lib"))))
                     (substitute* "bin/souffle-compile.py"
                       ;; Make C++ includes & linking work and remove embedded build path
-                      (("(\"includes\"): \"([[[[:alnum:] -_.]+)\"," all option prev-vals)
+                      (("(\"includes\"): \"([[[[:alnum:] -_.]+)\"," all option
+                        prev-vals)
                        (string-append option ": \""
-                                      (string-join includes " -I" 'prefix) " "
-                                      "\","))
-                      (("(\"link_options\"): \"([[:alnum:] -_.]+)\"," all option prev-options)
-                       (string-append option ": \""
-                                      (string-join libs " -L" 'prefix) " "
+                                      (string-join includes " -I"
+                                                   'prefix) " " "\","))
+                      (("(\"link_options\"): \"([[:alnum:] -_.]+)\"," all
+                        option prev-options)
+                       (string-append option
+                                      ": \""
+                                      (string-join libs " -L"
+                                                   'prefix)
+                                      " "
                                       prev-options
                                       "\","))
                       ;; Remove embedded build path
