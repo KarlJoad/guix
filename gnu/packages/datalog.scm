@@ -63,6 +63,8 @@
                          fontconfig
                          font-ghostscript
                          graphviz-minimal))
+    ;; These inputs are used when souffle is invoked as a compiler, so they are
+    ;; needed at runtime.
     (inputs (list gcc-toolchain
                   mcpp
                   python-minimal
