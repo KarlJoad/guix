@@ -1031,6 +1031,52 @@ line tools for batch rendering @command{pdfdraw}, rewriting files
                    license:silofl1.1    ;resources/fonts/{han,noto,sil,urw}
                    license:asl2.0)))) ; resources/fonts/droid
 
+(define-public pympress
+  (package
+    (name "pympress")
+    (version "1.8.6")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/Cimbali/pympress")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0dfqqsy7gf8dpgwk6249q18af0l2fmvmpwn1fjm8fnccjivmi2dc"))))
+    (build-system python-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'do-nothing
+            (lambda _ #t)))))
+    (native-inputs (list gettext-minimal
+                         poppler
+                         gtk
+                         python-pytest
+                         python-sh))
+    (inputs
+     (list))
+    (propagated-inputs
+     (list))
+    (home-page "https://cimbali.github.io/pympress")
+    (synopsis "PDF reader designed for dual-screen presentations")
+    (description "Pympress is a PDF presentation tool designed for dual-screen
+setups such as presentations and public talks. Highly configurable,
+fully-featured, and portable
+
+It comes with many great features (more below):
+
+@itemize
+@item supports embedded gifs (out of the box), videos, and audios (with VLC or
+Gstreamer integration)
+@item text annotations displayed in the presenter window
+@item natively supports beamer's notes on second screen, as well as Libreoffice
+notes pages!
+@end itemize")
+    (license license:gpl2)))
+
 (define-public qpdf
   (package
     (name "qpdf")
