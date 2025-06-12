@@ -249,6 +249,7 @@
                     ;; Remove embedded build path
                     (("(\"source_include_dir\"): \".*\"," all option)
                      (string-append option ": \"\","))))))))))
+    ;; TODO: Figure out if we need to handle search paths!
     ;; (native-search-paths
     ;; (list (search-path-specification
     ;; (variable "C_INCLUDE_PATH")
