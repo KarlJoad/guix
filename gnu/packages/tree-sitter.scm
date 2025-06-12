@@ -564,6 +564,18 @@ which will be used as a snippet in origin."
    "1.1.0"
    #:repository-url "https://github.com/tree-sitter-grammars/tree-sitter-kdl"))
 
+(define-public tree-sitter-mermaid
+  (let ((version "0.0.2") ; In package.json, but untagged
+        ;; Last commit before tree-sitter 0.22.x version bump
+        (commit "f31476c5f1ad39ac0c6a3702b7b566cbe87890ab")
+        (revision "0"))
+  (tree-sitter-grammar
+   "mermaid" "Mermaid"
+   "1y1bs39bq79n98fr02cyvrkm0a9zw0px4mwp5vxrz0hxfp5ppkwi"
+   (git-version version revision commit)
+   #:commit commit
+   #:repository-url "https://github.com/monaqa/tree-sitter-mermaid")))
+
 (define-public tree-sitter-ocaml
   (tree-sitter-grammar
    "ocaml" "OCaml (.ml and .mli)"
