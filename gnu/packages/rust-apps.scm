@@ -2633,6 +2633,43 @@ implements an analogue of the Texas Instruments Smart Amp speaker protection
 model.")
     (license license:expat)))
 
+(define-public systemd-lsp
+  (package
+    (name "systemd-lsp")
+    (version "2025.07.14")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/JFryy/systemd-lsp")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0xwnmn2bb7dpvyqwy5nq9lip6c7i7k8x9i4xklsjvq1xjj1cyfi6"))))
+    (build-system cargo-build-system)
+    (arguments
+     `(#:install-source? #f
+       #:cargo-inputs
+       (("rust-async-trait" ,rust-async-trait-0.1)
+        ("rust-atty" ,rust-atty-0.2)
+        ;; ("rust-dashmap" ,rust-dashmap-5.0)
+        ("rust-env-logger" ,rust-env-logger-0.10)
+        ("rust-log" ,rust-log-0.4))
+       ;; #:cargo-development-inputs
+       ;; (list)
+       ;; #:phases
+       ;; #~()
+       ))
+    (native-inputs
+     (list))
+    (inputs
+     (list))
+    (home-page "https://github.com/JFryy/systemd-lsp")
+    (synopsis "A language server implementation for systemd unit files")
+    (description
+     "")
+    (license license:expat)))
+
 (define-public tectonic
   (package
     (name "tectonic")
