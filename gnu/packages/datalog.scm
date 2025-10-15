@@ -108,7 +108,12 @@
               (when tests?
                 (invoke "ctest" "--output-on-failure" "-j"
                         (if parallel-tests?
-                            (number->string (parallel-job-count)) "1")))))
+                            (number->string (parallel-job-count)) "1")
+                        ;; Increase per-test time-out, since some tests can take
+                        ;; >1 hour to run.
+                        ;; Timeout is measured in seconds.
+                        ;; Set to 0 because we time-out at the Guix level.
+                        "--timeout" (number->string 0)))))
           (add-after 'check 'build-docs
             (lambda* (#:key inputs #:allow-other-keys)
               ;; Already in build/ directory
@@ -269,4 +274,5 @@ classical Datalog.  For example, programmers are not restricted to finite
 domains, and the usage of functors (intrinsic, user-defined,
 records/constructors, etc.) is permitted.  Souffle has a component model so
 that large logic projects can be expressed.")
-    (license license:upl1.0)))
+    (license license:upl1.0)
+    (properties `((timeout . ,(* 2 60 60))))))
